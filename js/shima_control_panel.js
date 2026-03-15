@@ -226,72 +226,62 @@ function spawnHTMLDialog(titleText, initialValue, isNumber, isMultiline, isFileU
 app.registerExtension({
     name: "Shima.ControlPanel",
 
-    setup() {
-        const originalGetCanvasMenuOptions = LGraphCanvas.prototype.getCanvasMenuOptions;
-        LGraphCanvas.prototype.getCanvasMenuOptions = function () {
-            const options = originalGetCanvasMenuOptions ? originalGetCanvasMenuOptions.apply(this, arguments) : [];
-            return options;
-        };
-    },
-
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "Shima.ControlPanel") {
             nodeType.title_mode = LiteGraph.NO_TITLE;
             nodeType.collapsable = false;
         }
+    },
 
-        const origGetExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
-        nodeType.prototype.getExtraMenuOptions = function (_, options) {
-            if (origGetExtraMenuOptions) {
-                origGetExtraMenuOptions.apply(this, arguments);
+    /**
+     * Modern hook for adding "Pin" options to all node context menus
+     */
+    getExtraMenuOptions(node, options) {
+        if (node.widgets && node.widgets.length > 0) {
+            const pinOptions = [];
+            for (let i = 0; i < node.widgets.length; i++) {
+                const w = node.widgets[i];
+                pinOptions.push({
+                    content: `📌 Pin '${w.name || w.type}'`,
+                    callback: () => {
+                        const isPinned = window.ShimaPinnedWidgets.some(
+                            p => p.nodeId === node.id && p.widgetName === w.name
+                        );
+
+                        if (!isPinned) {
+                            window.ShimaPinnedWidgets.push({
+                                nodeId: node.id,
+                                widgetName: w.name || w.type,
+                                widgetIndex: i,
+                                type: w.type,
+                                label: `${node.title || node.type} | ${w.name}` // Pipe format requested
+                            });
+
+                            const panels = app.graph._nodes.filter(n => n.comfyClass === "Shima.ControlPanel");
+                            panels.forEach(p => {
+                                p.size[1] += 34 * (p.properties?.scale || 1.0); // Expand for new row
+                                if (p.onResize) p.onResize(p.size);
+                                p.setDirtyCanvas(true, true);
+                            });
+
+                            app.canvas.setDirty(true, true);
+                        }
+                    }
+                });
             }
 
-            if (this.widgets && this.widgets.length > 0) {
-                const pinOptions = [];
-                for (let i = 0; i < this.widgets.length; i++) {
-                    const w = this.widgets[i];
-                    pinOptions.push({
-                        content: `📌 Pin '${w.name || w.type}'`,
-                        callback: () => {
-                            const isPinned = window.ShimaPinnedWidgets.some(
-                                p => p.nodeId === this.id && p.widgetName === w.name
-                            );
-
-                            if (!isPinned) {
-                                window.ShimaPinnedWidgets.push({
-                                    nodeId: this.id,
-                                    widgetName: w.name || w.type,
-                                    widgetIndex: i,
-                                    type: w.type,
-                                    label: `${this.title || this.type} | ${w.name}` // Pipe format requested
-                                });
-
-                                const panels = app.graph._nodes.filter(n => n.comfyClass === "Shima.ControlPanel");
-                                panels.forEach(p => {
-                                    p.size[1] += 34 * (p.properties?.scale || 1.0); // Expand for new row
-                                    if (p.onResize) p.onResize(p.size);
-                                    p.setDirtyCanvas(true, true);
-                                });
-
-                                app.canvas.setDirty(true, true);
-                            }
-                        }
-                    });
-                }
-
-                if (pinOptions.length > 0) {
-                    options.push(null);
-                    options.push({
-                        content: "Shima Control Panel",
-                        has_submenu: true,
-                        callback: () => { },
-                        submenu: {
-                            options: pinOptions
-                        }
-                    });
-                }
+            if (pinOptions.length > 0) {
+                options.push(null);
+                options.push({
+                    content: "Shima Control Panel",
+                    has_submenu: true,
+                    callback: () => { },
+                    submenu: {
+                        options: pinOptions
+                    }
+                });
             }
-        };
+        }
     },
 
     async nodeCreated(node) {

@@ -385,7 +385,7 @@ Central configuration and dependency management node. Checks for required assets
 
 | Direction | Name | Type | Description |
 |-----------|------|------|--------------|
-| Widget | `active_pack` | COMBO | Style thumbnail pack to use |
+| Widget | `active_style_thumbnails` | COMBO | Style thumbnail pack to use |
 | Widget | `auto_update` | BOOLEAN | Enable automatic pack updates |
 | Input | `custom_download_url` | STRING | Override URL for pack downloads |
 | Output | `STATUS` | STRING | Current pack and update status |

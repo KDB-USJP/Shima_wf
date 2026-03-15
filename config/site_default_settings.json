@@ -1,7 +1,42 @@
 {
-    "asset_packs": {
-        "Walking Woman": "https://drive.google.com/uc?export=download&id=1nHhDNMWj3Reox5yfo-zlk_4Ry4KsC7hZ",
-        "Still Life": "https://drive.google.com/uc?export=download&id=1oEQi6lnq32D9thOUEySL1NtYk66pDmpt"
+    "bundles": {
+        "styler_pro": {
+            "description": "All style thumbnail packs for complete creative variety.",
+            "packs": ["Walking Woman", "Still Life"],
+            "models": []
+        },
+        "flux_essentials": {
+            "description": "Essential ControlNets for FLUX workflows.",
+            "packs": [],
+            "models": ["flux_canny", "flux_depth"]
+        },
+        "deep_vision": {
+            "description": "Classic Depth and Pose models for SD1.5 and SDXL.",
+            "packs": [],
+            "models": ["sdxl_depth", "dwpose", "sd15_depth"]
+        },
+        "zimage_basic": {
+            "description": "Z-Image Basic [Recommended for GPUs under 8GB VRAM]. Includes Q5_K_S UNets and all required encoders/nodes.",
+            "packs": [],
+            "models": ["zimage_unet_q5", "zimage_unet_turbo_q5", "zimage_vae", "zimage_text", "zimage_union", "zimage_lora"],
+            "nodes": ["comfyui_gguf"]
+        },
+        "zimage_optimal": {
+            "description": "Z-Image Optimal [Recommended for 8-12GB VRAM]. Includes Q6_K UNets and all required encoders/nodes.",
+            "packs": [],
+            "models": ["zimage_unet_q6", "zimage_unet_turbo_q6", "zimage_vae", "zimage_text", "zimage_union", "zimage_lora"],
+            "nodes": ["comfyui_gguf"]
+        },
+        "zimage_pro": {
+            "description": "Z-Image Pro/Max [Best Quality, Recommended for 12GB+ VRAM]. Includes Q8_0 UNets and all required encoders/nodes.",
+            "packs": [],
+            "models": ["zimage_unet_q8", "zimage_unet_turbo_q8", "zimage_vae", "zimage_text", "zimage_union", "zimage_lora"],
+            "nodes": ["comfyui_gguf"]
+        }
+    },
+    "stylethumbs": {
+        "Walking Woman": "/assets/style_thumbs/walking_woman.zip",
+        "Still Life": "/assets/style_thumbs/still_life.zip"
     },
     "commons": {
         "model_types": [
@@ -73,5 +108,178 @@
                 }
             }
         }
+    },
+    "curated_models": [
+        {
+            "id": "dynavision_xl",
+            "name": "Dynavision XL",
+            "type": "checkpoints",
+            "base": "SDXL",
+            "save_path": "default",
+            "description": "Just a nice anime/toon model",
+            "reference": "https://civitai.com/models/122606/dynavision-xl-all-in-one-stylized-3d-sfw-and-nsfw-output-no-refiner-needed",
+            "filename": "dynavisionXLAllInOneStylized_release0557Bakedvae.safetensors",
+            "url": "https://civitai.com/api/download/models/198962?type=Model&format=SafeTensor&size=pruned&fp=fp16",
+            "requires_auth": true
+        },
+        {
+            "id": "add_detail_lora",
+            "name": "Add Detail Lora",
+            "type": "loras",
+            "base": "SD1.5",
+            "save_path": "loras/SD1.5",
+            "description": "The classic detail enhancer",
+            "reference": "https://civitai.com/models/58390",
+            "filename": "add_detail.safetensors",
+            "url": "https://civitai.com/api/download/models/62833",
+            "requires_auth": true
+        },
+        {
+            "id": "zimage_text",
+            "name": "Qwen3 4B UD (GGUF)",
+            "type": "text_encoders",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Optimized Text Encoder for Z-Image",
+            "filename": "Qwen3-4B-UD-Q6_K_XL.gguf",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/Qwen3-4B-UD-Q6_K_XL.gguf?download=true"
+        },
+        {
+            "id": "zimage_vae",
+            "name": "Z-Image VAE",
+            "type": "vae",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Official Z-Image VAE",
+            "filename": "ae.safetensors",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/ae.safetensors?download=true"
+        },
+        {
+            "id": "zimage_unet_q5",
+            "name": "Z-Image Base (Q5_K_S)",
+            "type": "unet",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Z-Image Base UNet (Low VRAM Edition)",
+            "filename": "z_image-Q5_K_S.gguf",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/z_image-Q5_K_S.gguf?download=true"
+        },
+        {
+            "id": "zimage_unet_turbo_q5",
+            "name": "Z-Image Turbo (Q5_K_S)",
+            "type": "unet",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Z-Image Turbo UNet (Low VRAM Edition)",
+            "filename": "z_image_turbo-Q5_K_S.gguf",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/z_image_turbo-Q5_K_S.gguf?download=true"
+        },
+        {
+            "id": "zimage_unet_q6",
+            "name": "Z-Image Base (Q6_K)",
+            "type": "unet",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Z-Image Base UNet (Standard Edition)",
+            "filename": "z_image-Q6_K.gguf",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/z_image-Q6_K.gguf?download=true"
+        },
+        {
+            "id": "zimage_unet_turbo_q6",
+            "name": "Z-Image Turbo (Q6_K)",
+            "type": "unet",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Z-Image Turbo UNet (Standard Edition)",
+            "filename": "z_image_turbo-Q6_K.gguf",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/z_image_turbo-Q6_K.gguf?download=true"
+        },
+        {
+            "id": "zimage_unet_q8",
+            "name": "Z-Image Base (Q8_0)",
+            "type": "unet",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Z-Image Base UNet (High Quality Edition)",
+            "filename": "z_image-Q8_0.gguf",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/z_image-Q8_0.gguf?download=true"
+        },
+        {
+            "id": "zimage_unet_turbo_q8",
+            "name": "Z-Image Turbo (Q8_0)",
+            "type": "unet",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Z-Image Turbo UNet (High Quality Edition)",
+            "filename": "z_image_turbo-Q8_0.gguf",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/z_image_turbo-Q8_0.gguf?download=true"
+        },
+        {
+            "id": "zimage_union",
+            "name": "Z-Image ControlNet Union",
+            "type": "controlnet",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Advanced ControlNet Union for Z-Image",
+            "filename": "Z-Image-Fun-Controlnet-Union-2.1.safetensors",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/Z-Image-Fun-Controlnet-Union-2.1.safetensors?download=true"
+        },
+        {
+            "id": "zimage_lora",
+            "name": "Z-Image Distill LoRA",
+            "type": "loras",
+            "base": "FLUX",
+            "save_path": "default",
+            "description": "Z-Image 8-Step Distillation LoRA",
+            "filename": "Z-Image-Fun-Lora-Distill-8-Steps.safetensors",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/Z-Image-Fun-Lora-Distill-8-Steps.safetensors?download=true"
+        },
+        {
+            "id": "upscale_clear_reality",
+            "name": "4x ClearReality V1",
+            "type": "upscale",
+            "base": "UNIVERSAL",
+            "save_path": "default",
+            "description": "High Fidelity Realism Upscaler",
+            "filename": "4x-ClearRealityV1.pth",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/4x-ClearRealityV1.pth?download=true"
+        },
+        {
+            "id": "upscale_anime_6b",
+            "name": "RealESRGAN 4x Anime 6B",
+            "type": "upscale",
+            "base": "ANIME",
+            "save_path": "default",
+            "description": "Specialized Anime Upscaler",
+            "filename": "RealESRGAN_x4plus_anime_6B.pth",
+            "url": "https://huggingface.co/Aitrepreneur/FLX/resolve/main/RealESRGAN_x4plus_anime_6B.pth?download=true"
+        }
+    ],
+    "node_registry": {
+        "comfyui_gguf": {
+            "name": "GGUF Model Loader",
+            "folder_name": "ComfyUI-GGUF",
+            "url": "https://github.com/city96/ComfyUI-GGUF"
+        },
+        "comfyui_impact_pack": {
+            "name": "Impact Pack",
+            "folder_name": "ComfyUI-Impact-Pack",
+            "url": "https://github.com/ltdrdata/ComfyUI-Impact-Pack"
+        },
+        "cg_use_everywhere": {
+            "name": "Use Everywhere",
+            "folder_name": "cg-use-everywhere",
+            "url": "https://github.com/chrisgoringe/cg-use-everywhere"
+        },
+        "shima_nodes": {
+            "name": "Shima Nodes",
+            "folder_name": "Shima",
+            "url": "https://github.com/Aegisflow/Shima"
+        }
+    },
+    "curated_nodes": ["comfyui_impact_pack", "cg_use_everywhere", "shima_nodes", "comfyui_gguf"],
+    "credential_fallbacks": {
+        "civitai": ["dadf5405198a95e37e23a604cc931030"],
+        "huggingface": []
     }
 }

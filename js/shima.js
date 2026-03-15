@@ -5,8 +5,76 @@
 
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
-import { GroupNodeConfig } from "../../extensions/core/groupNode.js";
 import { addShimaToolbar } from "./shima_topbar.js";
+
+// ============================================================================
+// Global Shima Utility Object & Console Sanitization
+// ============================================================================
+window.Shima = window.Shima || {};
+
+/// Silence the "Parameter defaultValue is deprecated" nag and common external deprecation noise
+// We intercept these to maintain a clean boot hygiene without being the "blame center" for 3rd party issues.
+const _originalWarn = console.warn;
+console.warn = function (msg, ...args) {
+    if (typeof msg === 'string') {
+        const ignoreList = [
+            "Parameter defaultValue is deprecated",
+            "[ComfyUI Deprecated]",
+            "[ComfyUI Notice]",
+            "[MaskEditor] ComfyApp.open_maskeditor is deprecated",
+            "Monkey-patching getCanvasMenuOptions is deprecated",
+            "Use of defaultInput on required input",
+            "Unsupported color format in color palette: transparent"
+        ];
+        if (ignoreList.some(item => msg.includes(item))) return;
+    }
+    return _originalWarn.call(console, msg, ...args);
+};
+
+/**
+ * Robustly opens the ComfyUI settings dialog and navigates to the "Shima" tab.
+ */
+window.Shima.openSettings = async function() {
+    // 1. Open the main settings dialog
+    const settingsBtn = document.querySelector(".comfy-settings-btn") || 
+                        document.querySelector("button[id*='settings']");
+    
+    if (settingsBtn) {
+        settingsBtn.click();
+    } else if (app.ui.settings && app.ui.settings.show) {
+        app.ui.settings.show();
+    } else {
+        console.warn("[Shima] Could not find settings button or API.");
+        return;
+    }
+
+    // 2. Wait for modal and navigate to Shima tab
+    // Retries for up to 1 second
+    for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 50));
+        
+        const selectors = [
+            ".comfy-modal button", 
+            ".comfy-modal div", 
+            ".p-dialog .p-menuitem-link", 
+            ".p-dialog li",
+            ".p-tabmenu-nav .p-menuitem-link"
+        ];
+        
+        const buttons = Array.from(document.querySelectorAll(selectors.join(",")));
+        const shimaTab = buttons.find(el => 
+            el.innerText && 
+            el.innerText.trim() === "Shima" && 
+            el.offsetParent !== null // Must be visible
+        );
+
+        if (shimaTab) {
+            shimaTab.click();
+            return;
+        }
+    }
+    console.log("[Shima] Could not auto-select settings tab");
+};
 
 // ============================================================================
 // Helper Functions for Group Management
@@ -1313,10 +1381,10 @@ function setupCommonsWidgets(node) {
         "aspect_ratio",
         {
             "Custom": ["width", "height"],
-            "1:1 Square": [], 
-            "16:9 Widescreen": [], 
-            "4:3 Standard": [], 
-            "21:9 Ultrawide": [], 
+            "1:1 Square": [],
+            "16:9 Widescreen": [],
+            "4:3 Standard": [],
+            "21:9 Ultrawide": [],
             "3:2 Photo": [],
             "1:1": [], "16:9": [], "9:16": [], "4:3": [], "3:4": [], "21:9": [],
             "SDXL": [], "SD1.5": []
@@ -2414,7 +2482,10 @@ async function loadIsland(island, suffix = null) {
 
             // Also register with GroupNodeConfig for old-style group nodes
             if (workflow.groupNodes) {
-                await GroupNodeConfig.registerFromWorkflow(workflow.groupNodes, {});
+                const GroupNodeConfig = window.comfyAPI?.groupNode?.GroupNodeConfig;
+                if (GroupNodeConfig) {
+                    await GroupNodeConfig.registerFromWorkflow(workflow.groupNodes, {});
+                }
             }
 
             // Store transformed data in clipboard
@@ -2680,6 +2751,27 @@ function registerShimaSettings() {
     if (!app.ui.settings) return;
 
     app.ui.settings.addSetting({
+        id: "Shima.xlsxStatus",
+        name: "Shima: XLSX Data Status",
+        type: "text",
+        defaultValue: "Checking...",
+        tooltip: "Status of shima_sheets.xlsx in assets/data/",
+        onChange: () => {}, // Read-only
+    });
+
+    // Fetch initial status
+    setTimeout(async () => {
+        try {
+            const res = await api.fetchApi("/shima/assets/check");
+            const data = await res.json();
+            const status = data.data_exists ? "✅ FOUND" : "❌ MISSING";
+            app.ui.settings.setSettingValue("Shima.xlsxStatus", status);
+        } catch (e) {
+            app.ui.settings.setSettingValue("Shima.xlsxStatus", "⚠️ ERROR");
+        }
+    }, 1000);
+
+    app.ui.settings.addSetting({
         id: "Shima.editorPath",
         name: "Shima: External Editor Path",
         type: "text",
@@ -2700,10 +2792,9 @@ function registerShimaSettings() {
         name: "Shima: API Base URL",
         type: "text",
         defaultValue: "https://shima.wf",
-        tooltip: "URL for Shima backend (e.g. http://localhost:3000 or https://shima.wf)",
+        tooltip: "URL for Shima backend (e.g. http://custom_url:3000 or https://shima.wf)",
         onChange: (value) => {
-            // Sync to backend shima_settings.json
-            api.fetchApi("/shima/settings/update", {
+            api.fetchApi("/shima/settings/save", {
                 method: "POST",
                 body: JSON.stringify({ api_base: value })
             }).catch(e => console.error("[Shima] Failed to sync apiBase:", e));
@@ -2717,11 +2808,60 @@ function registerShimaSettings() {
         defaultValue: "",
         tooltip: "Custom folder for style thumbnails. Leave empty for default extension folder.",
         onChange: (value) => {
-            // Sync to backend shima_settings.json
-            api.fetchApi("/shima/settings/update", {
+            api.fetchApi("/shima/settings/save", {
                 method: "POST",
                 body: JSON.stringify({ asset_directory: value })
             }).catch(e => console.error("[Shima] Failed to sync settings:", e));
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: "Shima.civitaiKey",
+        name: "Shima: CivitAI API Key",
+        type: "text",
+        defaultValue: "",
+        tooltip: "API Key for downloading from CivitAI. Enter your af_key...",
+        onChange: (value) => {
+            api.fetchApi("/shima/settings/save", {
+                method: "POST",
+                body: JSON.stringify({ civitai_key: value })
+            }).catch(e => console.error("[Shima] Failed to sync CivitAI key:", e));
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: "Shima.hfToken",
+        name: "Shima: HuggingFace Token",
+        type: "text",
+        defaultValue: "",
+        tooltip: "API Token for downloading from HuggingFace. Enter hf_...",
+        onChange: (value) => {
+            api.fetchApi("/shima/settings/save", {
+                method: "POST",
+                body: JSON.stringify({ hf_token: value })
+            }).catch(e => console.error("[Shima] Failed to sync HF token:", e));
+        }
+    });
+
+    app.ui.settings.addSetting({
+        id: "Shima.ActiveThumbnailPack",
+        name: "Shima: Active Style Thumbnail Pack",
+        type: "combo",
+        defaultValue: "walking_woman",
+        options: async () => {
+            try {
+                const res = await api.fetchApi("/shima/assets/check");
+                const data = await res.json();
+                return Object.keys(data.pack_status || {});
+            } catch (e) {
+                return ["walking_woman", "still_life_classic"];
+            }
+        },
+        onChange: (value) => {
+            api.fetchApi("/shima/settings/save", {
+                method: "POST",
+                body: JSON.stringify({ active_thumbnail_pack: value })
+            }).catch(e => console.error("[Shima] Failed to sync active pack:", e));
         }
     });
 
@@ -2731,7 +2871,6 @@ function registerShimaSettings() {
         name: "🏝️ Shima Active Node Palette",
         type: "combo",
         defaultValue: "Standard",
-        // Dynamically fetch options from the global state whenever the menu is opened
         options: (value) => {
             try {
                 const palettes = window.SHIMA_THEME?.palettes || {};
@@ -2779,7 +2918,7 @@ let userPrefs = { isOver18: false };
 function getProxyUrl(endpoint) {
     const base = getShimaSetting("apiBase") || "http://localhost:3000";
     const target = `${base}${endpoint}`;
-    return `/shima/api/proxy?target=${encodeURIComponent(target)}`;
+    return `/shima/proxy?target=${encodeURIComponent(target)}`;
 }
 
 // Load from localStorage
@@ -2826,8 +2965,8 @@ async function checkAuth() {
 async function fetchUserPrefs() {
     if (!isAuthenticated || !shimUserId) return;
     try {
-        const proxyUrl = getProxyUrl(`/api/ext/user-prefs?userId=${shimUserId}`);
-        const res = await fetch(proxyUrl);
+    const proxyUrl = getProxyUrl(`/api/ext/user-prefs?userId=${shimUserId}`);
+        const res = await api.fetchApi(proxyUrl);
         if (res.ok) {
             userPrefs = await res.json();
             console.log("[Shima] User preferences fetched");
@@ -2871,7 +3010,7 @@ async function fetchIslands() {
 
         console.log(`[Shima] Fetching islands via proxy: ${proxyUrl}`);
 
-        const res = await fetch(proxyUrl);
+        const res = await api.fetchApi(proxyUrl);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
@@ -3009,7 +3148,7 @@ async function downloadRemoteIsland(islandId, bypassLocal = false) {
     // 2. Fallback to remote fetch
     try {
         const proxyUrl = getProxyUrl(`/api/ext/download/${islandId}?userId=${shimUserId}`);
-        const res = await fetch(proxyUrl);
+        const res = await api.fetchApi(proxyUrl);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
@@ -3275,40 +3414,21 @@ app.registerExtension({
         await checkAuth();
         await fetchUserPrefs();
         await fetchIslands();
+    },
 
-        /**
-         * Helper for absolute idempotency: ensures we always have the "clean" original 
-         * even if the script is re-evaluated multiple times.
-         */
-        function ensureOriginal(proto, name) {
-            const key = `__shima_original_${name}`;
-            if (!proto[key]) {
-                proto[key] = proto[name];
-            }
-            return proto[key];
+    /**
+     * Modern Context Menu hook for Islands (Group Nodes)
+     */
+    getGroupMenuOptions(options, group) {
+        // Check if this is a Shima group (title starts with "Shima.")
+        if (group && group.title && group.title.startsWith("Shima.")) {
+            // Add separator and Shima options
+            options.push(null); // separator
+            options.push({
+                content: "🏝️ Rename Island Chain...",
+                callback: () => showRenameDialog(group)
+            });
         }
-
-        // Hook into group right-click menu to add Shima options (Absolutely Idempotent)
-        const originalGetGroupMenuOptions = ensureOriginal(LGraphCanvas.prototype, "getGroupMenuOptions");
-        LGraphCanvas.prototype.getGroupMenuOptions = function (node) {
-            const options = originalGetGroupMenuOptions.apply(this, arguments);
-            if (!options) return options;
-
-            // Get the group under the mouse
-            const group = this.graph.getGroupOnPos(this.graph_mouse[0], this.graph_mouse[1]);
-
-            // Check if this is a Shima group (title starts with "Shima.")
-            if (group && group.title && group.title.startsWith("Shima.")) {
-                // Add separator and Shima options
-                options.push(null); // separator
-                options.push({
-                    content: "🏝️ Rename Island Chain...",
-                    callback: () => showRenameDialog(group)
-                });
-            }
-
-            return options;
-        };
     },
 
     /**
@@ -3496,48 +3616,7 @@ app.registerExtension({
                         },
                         {
                             content: "⚙️ Open Shima Settings",
-                            callback: async () => {
-                                // Force DOM Click approach (API method causes "undefined" popup)
-                                const settingsBtn = document.querySelector(".comfy-settings-btn") ||
-                                    document.querySelector("button[id*='settings']");
-
-                                if (settingsBtn) {
-                                    settingsBtn.click();
-                                } else {
-                                    // Fallback to API if button missing
-                                    if (app.ui.settings && app.ui.settings.show) {
-                                        app.ui.settings.show();
-                                    } else {
-                                        alert("Settings dialog not accessible.");
-                                        return;
-                                    }
-                                }
-
-                                // 2. Navigate to "Shima" tab (DOM Hack)
-                                // Retries for up to 1 second to find the Shima tab in the settings sidebar
-                                const findAndClickShima = async () => {
-                                    for (let i = 0; i < 20; i++) {
-                                        await new Promise(r => setTimeout(r, 50));
-
-                                        // Look for the Shima text in the modal
-                                        // Common ComfyUI settings selectors
-                                        const buttons = Array.from(document.querySelectorAll(".comfy-modal button, .comfy-modal div, .p-dialog .p-menuitem-link, .p-dialog li"));
-                                        const shimaTab = buttons.find(el =>
-                                            el.innerText &&
-                                            el.innerText.trim() === "Shima" &&
-                                            el.offsetParent !== null // Visible
-                                        );
-
-                                        if (shimaTab) {
-                                            shimaTab.click();
-                                            return;
-                                        }
-                                    }
-                                    console.log("[Shima] Could not auto-select settings tab");
-                                };
-
-                                findAndClickShima();
-                            }
+                            callback: () => window.Shima.openSettings()
                         },
                         {
                             content: "🌐 Link to Shima.wf",

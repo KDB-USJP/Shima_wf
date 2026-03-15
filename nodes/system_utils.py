@@ -6,11 +6,12 @@ import hmac
 from pathlib import Path
 
 # --- GHOST KEYS (Must match enigma.ts) ---
+# New camouflaged tracers for 2026-Refresh
 ENIGMA_KEYS = [
-    'z_depth', 'p_cache', 'v_map', 'eval_iterations',
-    's_state', 'buf_offset', 'r_trace', 'i_idx',
-    'last_sync_v', 'm_schema', 'd_coord_y', 't_delta',
-    'b_step', 'u_mask', 'f_jitter', 'g_scale_v'
+    'f_offset', 'w_bias', 'k_sharp', 'm_weight', 
+    'v_range', 't_jitter', 'p_step', 's_scale',
+    'd_blur', 'r_norm', 'i_gain', 'l_seed',
+    'c_depth', 'b_margin', 'u_ratio', 'g_flow'
 ]
 
 # --- SECURITY# Forensic State Camouflage
@@ -147,7 +148,8 @@ class ShimaSecurity:
                     return BUFFER_STABLE, signature
 
                 # Verification: HMAC-SHA256(secret, f"{user_id}:{island_id}")
-                secret = "shima_enigma_v2_2024_internal_key" # Must match enigma.ts
+                # KEY ROTATED: 2026-03-13 (Matches server SHIMA_ENIGMA_SECRET)
+                secret = "g2L$U7%uJIB5fD0pC3HWAjXFdqhk&Yst!o*M9Kyz4nNlxiG6Rvm8QbwOrTeSVcEP" 
                 message = f"{user_id}:{island_id}".encode()
                 expected_signature = hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
                 
@@ -160,7 +162,7 @@ class ShimaSecurity:
                 has_ghosts = False
                 for node in prompt.values():
                     properties = node.get("_meta", {}).get("properties", {})
-                    if any(k in properties for k in cls.ENIGMA_KEYS):
+                    if any(k in properties for k in ENIGMA_KEYS):
                         has_ghosts = True
                         break
                 

@@ -6,57 +6,103 @@ from .settings_utils import ShimaSettings
 
 class AssetManager:
     def __init__(self, extension_root):
-        self.extension_root = Path(extension_root)
+        self.extension_root = Path(extension_root).resolve()
+        self.comfy_root = self.extension_root.parent.parent.resolve()
         self.default_assets_dir = self.extension_root / "assets" / "styles"
         self.packs = ShimaSettings.get_asset_packs()
 
     def get_asset_dir(self, custom_path=None):
-        """Returns the effective asset directory."""
-        if custom_path and os.path.isdir(custom_path):
-            return Path(custom_path)
+        """Returns target directory for assets, resolving custom path if provided."""
+        if custom_path:
+            return self.validate_path(Path(custom_path))
         return self.default_assets_dir
 
-    def download_pack(self, pack_name, target_dir=None):
-        """Download and unzip a style pack."""
-        if pack_name not in self.packs:
-            raise ValueError(f"Unknown pack: {pack_name}")
-
-        url = self.packs[pack_name]
+    def validate_path(self, target_path: Path) -> Path:
+        """ Ensures the target path is inside allowed ComfyUI subdirectories. """
+        target_path = target_path.resolve()
         
-        # Handle relative URLs by prepending Shima API Base
+        allowed_dirs = [
+            self.comfy_root / "models",
+            self.comfy_root / "input",
+            self.comfy_root / "custom_nodes"
+        ]
+        
+        # Check if the path is within any allowed directory
+        is_safe = False
+        for allowed in allowed_dirs:
+            try:
+                # Commonpath returns the longest common sub-path
+                if os.path.commonpath([allowed, target_path]) == str(allowed):
+                    is_safe = True
+                    break
+            except ValueError:
+                continue
+                
+        if not is_safe:
+            raise SecurityError(f"Target path {target_path} is outside allowed directories!")
+            
+        return target_path
+
+    def download_file(self, url, dest_path, display_name="file"):
+        """Download a single file securely."""
+        dest_path = self.validate_path(Path(dest_path))
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        print(f"[Shima] Securely downloading {display_name} to {dest_path}...")
+        
+        # Consistent Browser User-Agent
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req) as response:
+                with open(dest_path, 'wb') as f:
+                    f.write(response.read())
+            print(f"[Shima] {display_name} download complete.")
+            return True
+        except Exception as e:
+            print(f"[Shima] Download failed for {display_name}: {e}")
+            return False
+
+    def download_pack(self, pack_name, target_dir=None, manifest_name=None):
+        """Download and unzip a style pack."""
+        packs = self.packs
+        if manifest_name:
+            config = ShimaSettings.load_manifest_config(manifest_name)
+            packs = config.get("stylethumbs", self.packs)
+
+        if pack_name not in packs:
+            raise ValueError(f"Unknown pack: {pack_name} (Manifest: {manifest_name})")
+
+        url = packs[pack_name]
+        
+        # Handle relative URLs
         if url.startswith("/"):
             api_base = ShimaSettings.get_api_base().rstrip("/")
             url = f"{api_base}{url}"
-            print(f"[Shima] Resolved relative URL to: {url}")
+
         target_path = self.get_asset_dir(target_dir)
-        # We'll extract into a subfolder named after the pack for organized detection
-        pack_folder = target_path / pack_name
+        # Sandbox packs to styles or custom target but validate it
+        pack_folder = self.validate_path(target_path / pack_name)
         pack_folder.mkdir(parents=True, exist_ok=True)
 
         zip_path = target_path / f"{pack_name}.zip"
 
-        print(f"[Shima] Downloading {pack_name} assets to {pack_folder}...")
-        
         try:
-            # Simple downloader
-            def reporthook(blocknum, blocksize, totalsize):
-                readsofar = blocknum * blocksize
-                if totalsize > 0:
-                    percent = readsofar * 1e2 / totalsize
-                    s = "\r%5.1f%% %*d / %d" % (
-                        percent, len(str(totalsize)), readsofar, totalsize)
-                    print(s, end="")
-                else:
-                    print("\rRead %d" % (readsofar), end="")
-
-            urllib.request.urlretrieve(url, zip_path, reporthook)
-            print("\n[Shima] Download complete. Unzipping...")
+            req = urllib.request.Request(url, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            })
+            
+            with urllib.request.urlopen(req) as response:
+                with open(zip_path, 'wb') as f:
+                    f.write(response.read())
 
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 zip_ref.extractall(pack_folder)
 
             os.remove(zip_path)
-            print(f"[Shima] {pack_name} pack installed successfully in {pack_folder}.")
             return True
         except Exception as e:
             print(f"[Shima] Error installing {pack_name}: {e}")
@@ -66,3 +112,6 @@ class AssetManager:
 
     def list_available_packs(self):
         return list(self.packs.keys())
+
+class SecurityError(Exception):
+    pass
