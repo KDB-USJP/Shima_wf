@@ -23,6 +23,8 @@ console.warn = function (msg, ...args) {
             "[ComfyUI Notice]",
             "[MaskEditor] ComfyApp.open_maskeditor is deprecated",
             "Monkey-patching getCanvasMenuOptions is deprecated",
+            "not found in widget",
+            "defaultValue",
             "Use of defaultInput on required input",
             "Unsupported color format in color palette: transparent"
         ];
@@ -2901,8 +2903,8 @@ function getShimaSetting(name) {
 // ============================================================================
 
 // Configuration - change for production
-const SHIMA_API_BASE = "http://localhost:3000"; // Development
-// const SHIMA_API_BASE = "https://shima.wf"; // Production
+// const SHIMA_API_BASE = "http://localhost:3000"; // Development
+const SHIMA_API_BASE = "https://shima.wf"; // Production
 
 // Remote Islands State
 let cachedIslands = [];
@@ -2916,7 +2918,7 @@ let userPrefs = { isOver18: false };
  * Helper to build proxy URLs for remote Shima API calls
  */
 function getProxyUrl(endpoint) {
-    const base = getShimaSetting("apiBase") || "http://localhost:3000";
+    const base = getShimaSetting("apiBase") || "https://shima.wf";
     const target = `${base}${endpoint}`;
     return `/shima/proxy?target=${encodeURIComponent(target)}`;
 }
@@ -3655,6 +3657,64 @@ app.registerExtension({
 });
 
 /**
+ * Helper to convert URLs to embeddable versions
+ * Detects localhost/127.0.0.1 and converts to relative path for proxy support.
+ */
+function getEmbedUrl(url) {
+    if (!url) return "";
+    url = url.trim();
+
+    const getAppRoot = () => {
+        let p = window.location.pathname;
+        if (p.includes("/extensions/")) p = p.substring(0, p.indexOf("/extensions/"));
+        if (p.endsWith("/")) p = p.slice(0, -1);
+        return p;
+    };
+    const appBase = getAppRoot();
+    let path = url;
+
+    // 1. Aggressive Strip Local Origins
+    path = path.replace(/https?:\/\/(127\.0\.0\.1|localhost|.*-proxy\.mimicpc\.com)(:\d+)?/gi, "");
+
+    // 2. Resolve Path Tokens
+    // Special handling for [input] which requires ComfyUI's /view endpoint
+    if (path.match(/\[input\]|%5Binput%5D/i)) {
+        const filename = path.replace(/.*(?:\[input\]|%5Binput%5D)/i, "");
+        path = `view?filename=${encodeURIComponent(filename)}&type=input`;
+    } else {
+        path = path.replace(/\[shima\]|%5Bshima%5D/gi, "extensions/Shima/");
+        path = path.replace(/<shima>/gi, "extensions/Shima/").replace(/<input>/gi, "input/");
+    }
+
+    // 3. Universal Subpath Injection
+    const isInternal = path.includes("extensions/Shima/") || path.includes("input/") || path.includes("view?");
+    if (isInternal) {
+        // Find where the internal path starts in case of leading junk
+        const markers = ["extensions/Shima/", "input/", "view?"];
+        for (const marker of markers) {
+            if (path.includes(marker)) {
+                path = path.substring(path.indexOf(marker));
+                break;
+            }
+        }
+
+        let finalUrl = appBase + "/" + path;
+        if (finalUrl.includes(".html")) {
+            const separator = finalUrl.includes("?") ? "&" : "?";
+            finalUrl += separator + `base=${encodeURIComponent(appBase)}`;
+        }
+        return finalUrl;
+    }
+
+    if (url.includes("youtube.com/watch") || url.includes("youtu.be/")) {
+        const videoId = url.split("v=")[1]?.split("&")[0] || url.split("/").pop();
+        return `https://www.youtube.com/embed/${videoId}`;
+    }
+
+    return path;
+}
+
+/**
  * Set up Shima.RichDisplay node (Viewer)
  * @param {LGraphNode} node 
  */
@@ -3697,7 +3757,8 @@ function setupRichContentWidgets(node) {
         if (type === "HTML") {
             html += `<div style="${contentStyle}">${content}</div>`;
         } else if (type === "Markdown") {
-            let md = content
+            const cleanContent = getEmbedUrl(content);
+            let md = cleanContent
                 .replace(/^# (.*$)/gim, '<h3>$1</h3>')
                 .replace(/^## (.*$)/gim, '<h4>$1</h4>')
                 .replace(/\*\*(.*)\*\*/gim, '<b>$1</b>')
@@ -3705,11 +3766,14 @@ function setupRichContentWidgets(node) {
                 .replace(/\n/gim, '<br>');
             html += `<div style="${contentStyle}">${md}</div>`;
         } else if (type === "URL") {
-            html += `<iframe src="${content}" style="width: 100%; height: 100%; border: none;" sandbox="allow-scripts allow-same-origin"></iframe>`;
+            const embedUrl = getEmbedUrl(content);
+            html += `<iframe src="${embedUrl}" style="width: 100%; height: 100%; border: none;" sandbox="allow-scripts allow-same-origin"></iframe>`;
         } else if (type === "Image") {
-            html += `<img src="${content}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block; margin: auto;">`;
+            const cleanUrl = getEmbedUrl(content);
+            html += `<img src="${cleanUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block; margin: auto;">`;
         } else if (type === "Video") {
-            html += `<video src="${content}" controls autoplay loop style="max-width: 100%; max-height: 100%; display: block; margin: auto;"></video>`;
+            const cleanUrl = getEmbedUrl(content);
+            html += `<video src="${cleanUrl}" controls autoplay loop style="max-width: 100%; max-height: 100%; display: block; margin: auto;"></video>`;
         }
 
         container.innerHTML = html;
@@ -3833,19 +3897,6 @@ function setupContentPopup(node) {
         }
     }
 
-    // Helper to convert URLs to embeddable versions
-    function getEmbedUrl(url) {
-        if (!url) return "";
-        // Trim whitespace
-        url = url.trim();
-        // YouTube: convert watch?v=ID to embed/ID
-        if (url.includes("youtube.com/watch") || url.includes("youtu.be/")) {
-            const videoId = url.split("v=")[1]?.split("&")[0] || url.split("/").pop();
-            return `https://www.youtube.com/embed/${videoId}`;
-        }
-        return url;
-    }
-
     // Helper to parse Playlist
     function parsePlaylist(text) {
         return text.split("\n")
@@ -3938,7 +3989,8 @@ function setupContentPopup(node) {
             if (type === "HTML") {
                 bodyHtml = activeContent;
             } else if (type === "Markdown") {
-                bodyHtml = activeContent
+                const cleanContent = getEmbedUrl(activeContent);
+                bodyHtml = cleanContent
                     .replace(/^# (.*$)/gim, '<h3>$1</h3>')
                     .replace(/^## (.*$)/gim, '<h4>$1</h4>')
                     .replace(/\*\*(.*)\*\*/gim, '<b>$1</b>')
@@ -3948,9 +4000,11 @@ function setupContentPopup(node) {
                 const embedUrl = getEmbedUrl(activeContent);
                 bodyHtml = `<iframe src="${embedUrl}" style="width:100%; height:100%; min-height:100px; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>`;
             } else if (type === "Image") {
-                bodyHtml = `<img src="${activeContent}" style="max-width:100%; display:block; margin:auto;">`;
+                const cleanUrl = getEmbedUrl(activeContent);
+                bodyHtml = `<img src="${cleanUrl}" style="max-width:100%; display:block; margin:auto;">`;
             } else if (type === "Video") {
-                bodyHtml = `<video src="${activeContent}" controls style="max-width:100%;"></video>`;
+                const cleanUrl = getEmbedUrl(activeContent);
+                bodyHtml = `<video src="${cleanUrl}" controls style="max-width:100%;"></video>`;
             }
         }
 

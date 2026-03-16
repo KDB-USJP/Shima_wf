@@ -8,6 +8,8 @@ import { addShimaToolbar } from "./shima_topbar.js";
  * Toolbar with toggle icons provided by shima_topbar.js
  */
 
+import { disableUEForInputs } from "./ue_helper.js";
+
 const MODEL_CONFIGS = {
     "sd1.5": ["clip_l_weight", "positive_l", "negative_l"],
     "sd2.x": ["clip_g_weight", "positive_g", "negative_g"],
@@ -148,6 +150,9 @@ app.registerExtension({
                 setTimeout(() => {
                     if (!this.properties) this.properties = {};
                     this.properties.ue_properties = this.properties.ue_properties || {};
+
+                    // Disable incoming UE for overrides (Recursion Shield)
+                    disableUEForInputs(this, ["model_type_override", "model_override", "clip_override", "vae_override"]);
 
                     // Unconditionally force correct broadcast properties
                     this.properties.ue_properties.output_not_broadcasting = {

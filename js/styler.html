@@ -228,13 +228,25 @@
         const selectionIdsEl = document.getElementById('selectionIds');
         const toast = document.getElementById('toast');
 
+        // Parse query parameters for API base propagation
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Robust App Root Discovery (e.g., /web-url)
+        function getAppRoot() {
+            let p = window.location.pathname;
+            if (p.includes("/extensions/")) {
+                p = p.substring(0, p.indexOf("/extensions/"));
+            } else if (p.endsWith("/")) {
+                p = p.slice(0, -1);
+            }
+            return p;
+        }
+
+        const propagatedBase = urlParams.get('base') || getAppRoot();
+        const apiBase = localStorage.getItem('shima_api_base') || propagatedBase;
+
         async function fetchData() {
             try {
-                // Determine API Base
-                // If running embedded, relative path works.
-                // If running standalone/dev, use stored strict path or default.
-                let apiBase = localStorage.getItem('shima_api_base') || '';
-
                 const response = await fetch(`${apiBase}/shima/styler/data`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -409,7 +421,7 @@
                 if (currentTab === 'artists') {
                     // Use item.id (A0, A1...) for the image request
                     imgHtml = `
-                        <img src="/shima/styler/image_v2/${item.id}.png?${cacheBuster}" 
+                        <img src="${apiBase}/shima/styler/image_v2/${item.id}.png?${cacheBuster}" 
                              class="card-img-top" 
                              loading="lazy"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
@@ -420,7 +432,7 @@
                 } else {
                     // User Styles
                     imgHtml = `
-                        <img src="/shima/styler/image_v2/${item.id}.png?${cacheBuster}" 
+                        <img src="${apiBase}/shima/styler/image_v2/${item.id}.png?${cacheBuster}" 
                              class="card-img-top" 
                              loading="lazy"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">

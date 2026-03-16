@@ -18,12 +18,10 @@ class ShimaMasterPrompt:
 
             },
             "optional": {
-                "clip": ("CLIP",),
+                # clip: Moved to bottom as clip_override
                 # Shima Integration (Input)
                 "shima.commonparams": ("DICT", {"forceInput": True, "tooltip": "Connect Shima.Commons bundle here"}),
                 "shima.controlbus": ("LIST", {"forceInput": True, "tooltip": "Connect ControlNet chain here"}),
-
-                "model_type_override": ("STRING", {"forceInput": True, "tooltip": "Override model_type selection"}),
                 
                 "modelcitizen.bndl": ("BNDL", {
                     "forceInput": True,
@@ -55,22 +53,28 @@ class ShimaMasterPrompt:
                 "use_commonparams": ("BOOLEAN", {"default": True, "tooltip": "If True, use model_type from Shima.Commons bundle."}),
                 "allow_external_linking": ("BOOLEAN", {"default": False, "tooltip": "Allow connections outside the Island"}),
                 "show_used_values": ("BOOLEAN", {"default": False, "tooltip": "Show actual values being used (debug)"}),
+                
+                "model_type_override": ("STRING", {"forceInput": True, "tooltip": "Override model_type selection"}),
+                "model_override": ("MODEL", {"tooltip": "Optional model override"}),
+                "clip_override": ("CLIP", {"tooltip": "Optional CLIP override"}),
+                "vae_override": ("VAE", {"tooltip": "Optional VAE override"}),
+
                 "panelinputs.bndl": ("BNDL", {"forceInput": True, "tooltip": "Overrides panel settings using an external PanelBNDLer node"}),
             }
         }
 
-    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "CONDITIONING", "CONDITIONING", "CONDITIONING", "STRING", "STRING", "BNDL")
+    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "CONDITIONING", "CONDITIONING", "CONDITIONING", "VAE", "STRING", "STRING", "BNDL")
     # CLIP_L/G/T5 outputs are currently fallbacks to main positive.
-    RETURN_NAMES = ("positive", "negative", "CLIP_L_ONLY", "CLIP_G_ONLY", "T5_ONLY", "pos_string", "neg_string", "masterprompt.bndl")
+    RETURN_NAMES = ("positive", "negative", "CLIP_L_ONLY", "CLIP_G_ONLY", "T5_ONLY", "vae", "pos_string", "neg_string", "masterprompt.bndl")
     FUNCTION = "encode"
     CATEGORY = "Shima/Conditioning"
 
     def encode(self, positive, negative, model_type, 
-              clip=None, model_type_override=None, allow_external_linking=False, 
+              clip_override=None, model_type_override=None, allow_external_linking=False, 
               clip_l_weight=1.0, positive_l=None, negative_l=None,
               clip_g_weight=1.0, positive_g=None, negative_g=None,
               t5_weight=1.0, positive_t5=None, negative_t5=None,
-              use_commonparams=True, **kwargs):
+              use_commonparams=True, model_override=None, vae_override=None, **kwargs):
         
         # Safely parse boolean arguments
         def _parse_bool(v):
@@ -103,12 +107,20 @@ class ShimaMasterPrompt:
         # Priority Logic: Explicit Input > Model Bundle
         modelcitizen = kwargs.get("modelcitizen.bndl", None)
         
-        if clip is None and modelcitizen:
+        if clip_override is None and modelcitizen:
             if modelcitizen.get("bndl_type") == "modelcitizen":
-                clip = modelcitizen.get("clip")
+                clip_override = modelcitizen.get("clip")
+                if vae_override is None:
+                    vae_override = modelcitizen.get("vae")
             
-        if clip is None:
-            raise ValueError("[Shima MasterPrompt] No CLIP provided! Please connect 'clip' input or 'modelcitizen.bndl'.")
+        if clip_override is None:
+            raise ValueError("[Shima MasterPrompt] No CLIP provided! Please connect 'clip_override' input or 'modelcitizen.bndl'.")
+        
+        # Use simple internal name for clarity in math/encoding
+        clip = clip_override
+            
+        # Resolved Model (Explicit override > Bundle)
+        final_model = model_override if model_override is not None else (modelcitizen.get("model") if modelcitizen else None)
 
         # 1. Determine Model Type logic
         final_model_type = model_type
@@ -312,11 +324,13 @@ class ShimaMasterPrompt:
         # Construct Internal BNDL
         masterprompt_bndl = {
             "bndl_type": "masterprompt",
+            "model": final_model,
             "pos": pos_cond,
             "neg": neg_cond,
             "clip_l": pos_cond,
             "clip_g": pos_cond,
             "t5": pos_cond,
+            "vae": vae_override,
             "pos_string": positive,
             "neg_string": negative
         }
@@ -325,7 +339,7 @@ class ShimaMasterPrompt:
             "ui": {
                 "used_values": used_values_text,
             },
-            "result": (pos_cond, neg_cond, pos_cond, pos_cond, pos_cond, positive, negative, masterprompt_bndl)
+            "result": (pos_cond, neg_cond, pos_cond, pos_cond, pos_cond, vae_override, positive, negative, masterprompt_bndl)
         }
 
 class ShimaPanelMasterPrompt(ShimaMasterPrompt):
@@ -334,8 +348,8 @@ class ShimaPanelMasterPrompt(ShimaMasterPrompt):
     Frontend Javascript hides all native widgets and renders a sleek PCB chassis + double-click HTML modal.
     """
     CATEGORY = "Shima/Panels"
-    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "BNDL")
-    RETURN_NAMES = ("positive", "negative", "masterprompt.bndl")
+    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "VAE", "BNDL")
+    RETURN_NAMES = ("positive", "negative", "vae", "masterprompt.bndl")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -348,8 +362,8 @@ class ShimaPanelMasterPrompt(ShimaMasterPrompt):
     def encode(self, *args, **kwargs):
         res = super().encode(*args, **kwargs)
         orig_tuple = res["result"]
-        # original returns (pos_cond, neg_cond, l_cond, g_cond, t5_cond, positive_str, negative_str, masterprompt.bndl)
-        res["result"] = (orig_tuple[0], orig_tuple[1], orig_tuple[7])
+        # original returns (pos_cond, neg_cond, l_cond, g_cond, t5_cond, vae, positive_str, negative_str, masterprompt.bndl)
+        res["result"] = (orig_tuple[0], orig_tuple[1], orig_tuple[5], orig_tuple[8])
         return res
 
 NODE_CLASS_MAPPINGS = {

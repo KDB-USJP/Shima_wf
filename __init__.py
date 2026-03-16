@@ -140,6 +140,32 @@ def init_islands_db():
 # Initialize DB on load
 init_islands_db()
 
+def ensure_shima_assets():
+    """Copy essential Shima branding assets to ComfyUI input/shima folder."""
+    try:
+        import folder_paths
+        input_dir = Path(folder_paths.get_input_directory())
+        target_dir = input_dir / "shima"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 1. Branding: Logo
+        logo_source = SHIMA_DIR / "assets" / "logos" / "shima_logo_square.png"
+        if logo_source.exists():
+            shutil.copy2(logo_source, target_dir / "shima_logo_square.png")
+            
+        # 2. Add a README to help users understand they can prune this
+        readme_path = target_dir / "README.txt"
+        if not readme_path.exists():
+            with open(readme_path, "w") as f:
+                f.write("This directory contains Shima branding and placeholder assets for workflows.\nYou can safely delete these if you are not using Shima models/nodes.")
+                
+        print(f"[Shima] Verified branding assets in {target_dir}")
+    except Exception as e:
+        print(f"[Shima] Warning: Could not sync branding assets: {e}")
+
+# Run Asset Sync
+ensure_shima_assets()
+
 # Initialize Asset Manager
 asset_manager = AssetManager(SHIMA_DIR)
 

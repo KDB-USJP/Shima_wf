@@ -2,6 +2,7 @@ window.Shima = window.Shima || {};
 
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
+import { disableUEForInputs } from "./ue_helper.js";
 
 // Common Style Browser Logic for Selector (List) and Gallery (Grid)
 const createStyleBrowser = (nodeType, nodeData) => {
@@ -11,6 +12,9 @@ const createStyleBrowser = (nodeType, nodeData) => {
         const r = onNodeCreated?.apply(this, arguments);
         const node = this;
         const isGallery = nodeData.name === "Shima.StyleGallery";
+
+        // Disable UE for prompt/string overrides
+        disableUEForInputs(node, ["base_prompt", "negative_prompt", "base_string", "negative_string"]);
 
         const widget = {
             type: "HTML",
@@ -745,6 +749,9 @@ app.registerExtension({
             nodeType.prototype.onNodeCreated = function () {
                 const r = onNodeCreated?.apply(this, arguments);
                 const node = this;
+
+                // Disable UE for prompt/string overrides
+                disableUEForInputs(node, ["base_prompt", "base_string", "negative_string"]);
 
                 // Listen for server event
                 const handleBatch = (e) => {

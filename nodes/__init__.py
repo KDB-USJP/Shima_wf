@@ -77,6 +77,8 @@ from .system_utils import NODE_CLASS_MAPPINGS as SYSTEM_NODES
 from .system_utils import NODE_DISPLAY_NAME_MAPPINGS as SYSTEM_DISPLAY_NAMES
 from .panel_bndler import NODE_CLASS_MAPPINGS as PANEL_BNDLER_NODES
 from .panel_bndler import NODE_DISPLAY_NAME_MAPPINGS as PANEL_BNDLER_DISPLAY_NAMES
+from .workflow_checker import NODE_CLASS_MAPPINGS as WORKFLOW_CHECKER_NODES
+from .workflow_checker import NODE_DISPLAY_NAME_MAPPINGS as WORKFLOW_CHECKER_DISPLAY_NAMES
 
 # Import server to register routes
 from . import server
@@ -125,6 +127,7 @@ NODE_CLASS_MAPPINGS = {
     **INTERACTIVE_CROP_NODES,
     **SEGS_NODES,
     **PANEL_BNDLER_NODES,
+    **WORKFLOW_CHECKER_NODES,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -170,6 +173,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **INTERACTIVE_CROP_DISPLAY_NAMES,
     **SEGS_DISPLAY_NAMES,
     **PANEL_BNDLER_DISPLAY_NAMES,
+    **WORKFLOW_CHECKER_DISPLAY_NAMES,
 }
 
 # ============================================================================
