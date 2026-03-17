@@ -31,7 +31,7 @@ SHIMA_BANNER = r"""
 /_______  \____ |__||____|_  \____|__  /   
         \/     \/          \/        \/    
                                            
- >>> SHIMA WORKFLOW ISLANDS v2.0.1 <<<
+ >>> SHIMA WORKFLOW ISLANDS v2.0.2 <<<
  ------------------------------------------
  OPTIMIZED FOR:
   + Use Everywhere (Bus/Auto-Connect)
