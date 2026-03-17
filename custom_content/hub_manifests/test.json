@@ -1,0 +1,44 @@
+{
+    "bundles": {
+        "creator_test_pack": {
+            "name": "CREATOR TEST PACK",
+            "description": "A sample manifest to test custom 3D assets, models, and packs.",
+            "models": ["control_v11p_sd15_canny"],
+            "packs": ["Still Life"],
+            "assets": [
+                {
+                    "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Embedded/Box.gltf",
+                    "target_subfolder": "test_3d"
+                },
+                {
+                    "url": "https://www.shima.wf/assets/installer/shima_logo_sticker.png",
+                    "target_subfolder": "marketing"
+                }
+            ]
+        }
+    },
+    "curated_models": [
+        {
+            "id": "control_v11p_sd15_canny",
+            "name": "Standard Canny (SD15)",
+            "type": "controlnet",
+            "base": "SD15",
+            "save_path": "default",
+            "filename": "control_v11p_sd15_canny.pth",
+            "source": "hf",
+            "repo_id": "lllyasviel/ControlNet-v1-1",
+            "subfolder": "",
+            "reference": "https://huggingface.co/lllyasviel/ControlNet-v1-1"
+        }
+    ],
+    "curated_nodes": [
+        "comfyui_controlnet_aux"
+    ],
+    "node_registry": {
+        "comfyui_controlnet_aux": {
+            "name": "ControlNet Aux Nodes",
+            "folder_name": "comfyui_controlnet_aux",
+            "url": "https://github.com/Fannovel16/comfyui_controlnet_aux"
+        }
+    }
+}

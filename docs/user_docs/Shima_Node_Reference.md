@@ -553,13 +553,27 @@ Ghost process detector — scans for stale ComfyUI processes consuming VRAM and 
 
 ### Custodian
 
-System management node with global toggles for Dymo Labels, Headlines, and pycache cleanup.
+The Shima Custodian is a centralized maintenance and organization node. It features a compact physical chassis with 6 physical buttons for quick toggle/cleanup actions.
 
-| Direction | Name | Type | Description |
-|-----------|------|------|-------------|
-| Widget | `show_dymos` | BOOLEAN | Global Dymo Label visibility |
-| Widget | `show_headlines` | BOOLEAN | Global Headline visibility |
-| Widget | `clean_pycache` | BOOLEAN | Trigger pycache cleanup |
+| Button | Label | Action | Color |
+| :--- | :--- | :--- | :--- |
+| **1** | `☢️ NUKE __PYCACHE__` | Recursively deletes all Python cache folders in the extension. | Red |
+| **2** | `🏷️ TOGGLE ALL DYMOS` | Globally hides or shows every **Dymo Label** in the workflow. | Blue |
+| **3** | `📰 TOGGLE ALL HEADLINES` | Globally hides or shows every **Headline** node in the workflow. | Blue |
+| **4** | `🏝️ CLEAR GROUP-REGS` | Wipes the "Use Everywhere" group restrictions (regex) from all nodes. | Green |
+| **5** | `📂 OPEN EXTRAS` | Opens a modal menu for Help, Style Dash, Documentation, and Excel. | White |
+| **6** | `🌋 NUKE GROUPS & REGS` | **Deep Clean:** Deletes all Groups and clears all UE restrictions. | Orange |
+
+**Extras Modal:**  
+Clicking **OPEN EXTRAS** launches a dynamic portal giving you instant access to:
+- **📖 HELP**: Quick reference guide.
+- **🎨 STYLE DASH**: Visual style management.
+- **📚 DOCUMENTATION**: This interactive portal.
+- **📊 EXCEL EDITOR**: Direct access to your style spreadsheets.
+
+**Status Display:**  
+The bottom of the node displays a digital status readout (e.g., "Deleted 5 caches", "Nuked 3 Groups") to provide immediate feedback on actions.
+
 
 ### System Buffer
 

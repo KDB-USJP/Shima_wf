@@ -86,6 +86,9 @@ class ShimaPreviewCompare:
                     "tooltip": "Embed generation metadata in saved image."
                 }),
 
+                # Fit mode for different aspects
+                "fit_mode": (["Squeeze", "Crop to Left", "Crop to Right"], {"default": "Squeeze"}),
+
                 # Shima Integration (Widgets)
                 "use_commonparams": ("BOOLEAN", {
                     "default": True,
@@ -223,6 +226,7 @@ class ShimaPreviewCompare:
                     "right_count": len(right_results),
                     "left_filenames": [r["filename"] for r in left_results],
                     "right_filenames": [r["filename"] for r in right_results],
+                    "fit_mode": kwargs.get("fit_mode", "Squeeze"),
                     "has_filename": filename is not None,
                     "has_folder": folder_path is not None,
                 }],

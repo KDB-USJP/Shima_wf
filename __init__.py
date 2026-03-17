@@ -454,6 +454,68 @@ async def get_sticker_list(request):
     return web.json_response(files)
 
 
+# Register the Shima web directory for static tools/docs at the VERY END
+# to ensure it doesn't shadow explicit /shima/... API routes.
+def register_shima_static():
+    if hasattr(PromptServer.instance.app, "router"):
+        PromptServer.instance.app.router.add_static("/shima/", str(SHIMA_DIR / "web"), name="shima_static", show_index=True)
+    else:
+        # Fallback for very old versions or unexpected app objects
+        PromptServer.instance.app.add_static("/shima/", str(SHIMA_DIR / "web"), name="shima_static", show_index=True)
+
+# We will call this after all routes are registered.
+register_shima_static()
+
+
+# --- Documentation API ---
+
+@PromptServer.instance.routes.get("/shima/docs/list")
+async def list_docs(request):
+    """List markdown files in the user_docs directory."""
+    try:
+        docs_dir = SHIMA_DIR / "docs" / "user_docs"
+        if not docs_dir.exists():
+            return web.json_response({"error": "Docs directory not found"}, status=404)
+        
+        files = []
+        # Sort files: Overview and Reference first, then others alphabetically
+        priority = ["Shima_Nodes_Overview.md", "Shima_Node_Reference.md", "getting-started.md"]
+        
+        all_mdfs = [f.name for f in docs_dir.glob("*.md")]
+        
+        # Add priority files if they exist
+        for p in priority:
+            if p in all_mdfs:
+                files.append(p)
+                all_mdfs.remove(p)
+        
+        # Add remaining
+        files.extend(sorted(all_mdfs))
+        
+        return web.json_response({"files": files})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+@PromptServer.instance.routes.get("/shima/docs/read/{filename}")
+async def read_doc(request):
+    """Serve the raw content of a markdown documentation file."""
+    filename = request.match_info["filename"]
+    # Security: Ensure filename doesn't try to escape the docs directory
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return web.Response(status=403, text="Forbidden")
+        
+    try:
+        doc_path = SHIMA_DIR / "docs" / "user_docs" / filename
+        if not doc_path.exists():
+            return web.Response(status=404, text=f"File {filename} not found")
+            
+        with open(doc_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        return web.Response(text=content, content_type="text/markdown")
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
 @PromptServer.instance.routes.get("/shima/excel/download")
 async def download_excel(request):
     """Serve the raw shima_sheets.xlsx file."""

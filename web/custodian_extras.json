@@ -1,0 +1,34 @@
+[
+    {
+        "id": "help",
+        "label": "📖 OPEN HELP",
+        "url": "/shima/shima_help.html",
+        "color": "#ffffff",
+        "windowName": "ShimaHelp",
+        "windowSize": "width=800,height=900"
+    },
+    {
+        "id": "styler",
+        "label": "🎨 OPEN STYLE DASH",
+        "url": "/shima/styler.html",
+        "color": "#f2a900",
+        "windowName": "ShimaStyler",
+        "windowSize": "width=1200,height=1000"
+    },
+    {
+        "id": "docs",
+        "label": "📚 DOCUMENTATION",
+        "url": "/shima/documentation.html",
+        "color": "#44aaff",
+        "windowName": "ShimaDocs",
+        "windowSize": "width=1200,height=900"
+    },
+    {
+        "id": "excel",
+        "label": "📊 EXCEL EDITOR",
+        "url": "/shima/excel-editor.html",
+        "color": "#21a366",
+        "windowName": "ShimaExcel",
+        "windowSize": "width=1200,height=1000"
+    }
+]

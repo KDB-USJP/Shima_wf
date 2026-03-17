@@ -1705,6 +1705,7 @@ function setupShimaCompareWidgets(node) {
 
             this.shimaCompareReady = true;
             this.shimaSliderPos = 0.5;
+            this.shimaFitMode = compareData.fit_mode || "Squeeze";
 
             // Show side selector
             if (this.shimaSideContainer) {
@@ -1754,12 +1755,21 @@ function setupShimaCompareWidgets(node) {
         const rw = this.shimaRightImg.naturalWidth;
         const rh = this.shimaRightImg.naturalHeight;
 
-        // Use the smaller resolution as target for visual display
-        const targetW = Math.min(lw, rw);
-        const targetH = Math.min(lh, rh);
+        const fitMode = this.shimaFitMode || "Squeeze";
+        let targetAspect;
+
+        if (fitMode === "Crop to Left" && lw && lh) {
+            targetAspect = lw / lh;
+        } else if (fitMode === "Crop to Right" && rw && rh) {
+            targetAspect = rw / rh;
+        } else {
+            // Squeeze / default: Use the smaller resolution as target for visual display
+            const targetW = Math.min(lw, rw);
+            const targetH = Math.min(lh, rh);
+            targetAspect = targetW / targetH;
+        }
 
         // Fit into available area while preserving aspect ratio
-        const targetAspect = targetW / targetH;
         const areaAspect = areaW / areaH;
 
         let drawW, drawH;
@@ -1779,12 +1789,32 @@ function setupShimaCompareWidgets(node) {
 
         ctx.save();
 
+        // Helper for centered cropping
+        const drawImageCropped = (img, dX, dY, dW, dH, aspect) => {
+            const iW = img.naturalWidth;
+            const iH = img.naturalHeight;
+            const iAspect = iW / iH;
+
+            let sX = 0, sY = 0, sW = iW, sH = iH;
+
+            if (fitMode !== "Squeeze") {
+                if (iAspect > aspect) {
+                    sW = iH * aspect;
+                    sX = (iW - sW) / 2;
+                } else {
+                    sH = iW / aspect;
+                    sY = (iH - sH) / 2;
+                }
+            }
+            ctx.drawImage(img, sX, sY, sW, sH, dX, dY, dW, dH);
+        };
+
         // Draw LEFT image (full width, clipped to left of slider)
         ctx.save();
         ctx.beginPath();
         ctx.rect(drawX, drawY, sliderX - drawX, drawH);
         ctx.clip();
-        ctx.drawImage(this.shimaLeftImg, drawX, drawY, drawW, drawH);
+        drawImageCropped(this.shimaLeftImg, drawX, drawY, drawW, drawH, targetAspect);
         ctx.restore();
 
         // Draw RIGHT image (full width, clipped to right of slider)
@@ -1792,7 +1822,7 @@ function setupShimaCompareWidgets(node) {
         ctx.beginPath();
         ctx.rect(sliderX, drawY, drawX + drawW - sliderX, drawH);
         ctx.clip();
-        ctx.drawImage(this.shimaRightImg, drawX, drawY, drawW, drawH);
+        drawImageCropped(this.shimaRightImg, drawX, drawY, drawW, drawH, targetAspect);
         ctx.restore();
 
         // Draw slider line
