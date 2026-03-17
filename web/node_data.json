@@ -1,0 +1,898 @@
+{
+  "categories": [
+    "Conditioning", "Design", "Image", "Latent", "Loaders",
+    "Output", "Panels", "Routing", "Sampling", "Styler",
+    "System", "Utilities"
+  ],
+  "nodes": [
+
+    { "id": "master-prompt", "name": "Master Prompt", "category": "Conditioning",
+      "description": "Multi-model-aware dual-prompt management node. Handles positive and negative conditioning for SD1.5, SDXL, SD3, Flux, AuraFlow, and HunyuanDiT via independent CLIP-L, CLIP-G, and T5 text encoders with per-encoder weight sliders.",
+      "image": null,
+      "inputs": [
+        {"name": "clip", "type": "CLIP", "desc": "CLIP model for text encoding"},
+        {"name": "modelcitizen", "type": "BNDL", "desc": "Model Citizen bundle (auto-extracts CLIP)"},
+        {"name": "positive", "type": "STRING", "desc": "Main positive prompt"},
+        {"name": "negative", "type": "STRING", "desc": "Main negative prompt"},
+        {"name": "positive_l / negative_l", "type": "STRING", "desc": "CLIP-L positive/negative (style, detail)"},
+        {"name": "positive_g / negative_g", "type": "STRING", "desc": "CLIP-G positive/negative (subject, composition)"},
+        {"name": "positive_t5 / negative_t5", "type": "STRING", "desc": "T5 positive/negative (complex language, Flux/SD3)"}
+      ],
+      "widgets": [
+        {"name": "model_type", "type": "COMBO", "desc": "sdxl, sd1.5, sd3, flux, auraflow, hunyuan"},
+        {"name": "clip_l_weight", "type": "FLOAT", "desc": "CLIP-L encoder weight (0.0–10.0)"},
+        {"name": "clip_g_weight", "type": "FLOAT", "desc": "CLIP-G encoder weight (0.0–10.0)"},
+        {"name": "t5_weight", "type": "FLOAT", "desc": "T5 encoder weight (0.0–10.0)"},
+        {"name": "show_used_values", "type": "BOOLEAN", "desc": "Display passed values"},
+        {"name": "allow_external_linking", "type": "BOOLEAN", "desc": "Topbar UE toggle"}
+      ],
+      "outputs": [
+        {"name": "positive", "type": "CONDITIONING", "desc": "Encoded positive conditioning"},
+        {"name": "negative", "type": "CONDITIONING", "desc": "Encoded negative conditioning"},
+        {"name": "masterprompt.bndl", "type": "BNDL", "desc": "Bundle with both conditionings"}
+      ]
+    },
+
+    { "id": "backdrop", "name": "Backdrop", "category": "Design",
+      "description": "Decorative background node that draws gradient or image backgrounds behind groups of nodes. Renders always at back (Z-order). Double-click to configure.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "bg_type", "type": "COMBO", "desc": "\"gradient\" or \"image\""},
+        {"name": "color1 / color2", "type": "STRING", "desc": "Gradient stop colors (hex)"},
+        {"name": "image", "type": "COMBO", "desc": "Image from assets/customBG/"},
+        {"name": "opacity", "type": "FLOAT", "desc": "Alpha transparency (0.0–1.0)"},
+        {"name": "scale_mode", "type": "COMBO", "desc": "\"cover\" or \"fit\""},
+        {"name": "offset_x / offset_y", "type": "INT", "desc": "Pixel offset for fine positioning"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "headline", "name": "Headline", "category": "Design",
+      "description": "Transparent label node for organizing workflow sections. Renders embossed text with no background, cleanly over Backdrop nodes. Can be toggled globally via Custodian.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "text", "type": "STRING", "desc": "Display text"},
+        {"name": "font_size", "type": "INT", "desc": "Font size in pixels"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "sticker", "name": "Sticker", "category": "Design",
+      "description": "Displays a decorative image from the sticker library (PNG/SVG). Transparent background. Place stickers in Shima/sticker_images/PNG/ or /SVG/.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "image", "type": "COMBO", "desc": "Sticker image selection"},
+        {"name": "scale", "type": "FLOAT", "desc": "Scale factor"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "noodman-sticker", "name": "Noodman Sticker", "category": "Design",
+      "description": "Displays the Shima mascot (Noodman) as a decorative node element.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": []
+    },
+
+    { "id": "workflow-image-creator", "name": "Workflow Image Creator", "category": "Design",
+      "description": "Generates a workflow cover image with text overlay and logo compositing. Supports main and subtitle text with custom fonts, logo placement with drop shadows, and auto-save to disk.",
+      "image": null,
+      "inputs": [
+        {"name": "base_image", "type": "IMAGE", "desc": "Optional background image (defaults to black 1024×1024)"}
+      ],
+      "widgets": [
+        {"name": "text_main", "type": "STRING", "desc": "Primary text line"},
+        {"name": "text_sub", "type": "STRING", "desc": "Subtitle text"},
+        {"name": "font_name", "type": "COMBO", "desc": "Font from Shima/fonts/"},
+        {"name": "main_font_size / sub_font_size", "type": "INT", "desc": "Text sizes (10–500)"},
+        {"name": "subtext_position", "type": "COMBO", "desc": "\"Above\" or \"Below\" main text"},
+        {"name": "logo_file", "type": "COMBO", "desc": "Logo from ComfyUI input dir"},
+        {"name": "logo_position", "type": "COMBO", "desc": "Corners, center, or center-large"},
+        {"name": "save_mode", "type": "BOOLEAN", "desc": "Auto-save to output directory"}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "desc": "Composited cover image"}
+      ]
+    },
+
+    { "id": "preview", "name": "Preview", "category": "Image",
+      "description": "Enhanced image preview with save-to-disk and open-in-editor integration.",
+      "image": null,
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "desc": "Images to preview"}
+      ],
+      "widgets": [
+        {"name": "default_folder", "type": "STRING", "desc": "Save destination path"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "carousel-preview", "name": "Carousel Preview", "category": "Image",
+      "description": "Displays multiple images in a scrollable carousel preview.",
+      "image": null,
+      "inputs": [{"name": "images", "type": "IMAGE", "desc": "Images to display"}],
+      "widgets": [],
+      "outputs": []
+    },
+
+    { "id": "batch-image-processor", "name": "Batch Image Processor", "category": "Image",
+      "description": "Applies transformations to a batch of images sequentially.",
+      "image": null,
+      "inputs": [{"name": "images", "type": "IMAGE", "desc": "Batch of images"}],
+      "widgets": [{"name": "operation", "type": "COMBO", "desc": "Processing operation"}],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Processed batch"}]
+    },
+
+    { "id": "photo-remix", "name": "Photo Remix", "category": "Image",
+      "description": "Creative image remixing with style transfer capabilities. Accepts model and conditioning via individual inputs or BNDL bundles.",
+      "image": null,
+      "inputs": [
+        {"name": "image", "type": "IMAGE", "desc": "Source image"},
+        {"name": "positive / negative", "type": "CONDITIONING", "desc": "Conditioning (optional if using bundles)"},
+        {"name": "model", "type": "MODEL", "desc": "Diffusion model"},
+        {"name": "vae", "type": "VAE", "desc": "VAE decoder"},
+        {"name": "modelcitizen.bndl", "type": "BNDL", "desc": "Model Citizen bundle"},
+        {"name": "masterprompt.bndl", "type": "BNDL", "desc": "Master Prompt bundle"}
+      ],
+      "widgets": [
+        {"name": "resolution_mode", "type": "COMBO", "desc": "Source, SDXL Buckets, SD1.5 Buckets, or Custom"},
+        {"name": "denoise", "type": "FLOAT", "desc": "Denoising strength (default 0.60)"}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "desc": "Remixed image"},
+        {"name": "LATENT", "type": "LATENT", "desc": "Sampled latent"}
+      ]
+    },
+
+    { "id": "brightness-contrast", "name": "Brightness/Contrast", "category": "Image",
+      "description": "Simple brightness and contrast adjustment.",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Input image"}],
+      "widgets": [
+        {"name": "brightness", "type": "FLOAT", "desc": "Brightness adjustment (-1.0 to 1.0)"},
+        {"name": "contrast", "type": "FLOAT", "desc": "Contrast adjustment (-1.0 to 1.0)"}
+      ],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Adjusted image"}]
+    },
+
+    { "id": "image-flip", "name": "Image Flip", "category": "Image",
+      "description": "Flips images horizontally, vertically, or both.",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Input image"}],
+      "widgets": [{"name": "flip_mode", "type": "COMBO", "desc": "\"horizontal\", \"vertical\", or \"both\""}],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Flipped image"}]
+    },
+
+    { "id": "gaussian-blur", "name": "Gaussian Blur", "category": "Image",
+      "description": "Applies Gaussian blur with configurable radius.",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Input image"}],
+      "widgets": [{"name": "radius", "type": "INT", "desc": "Blur radius"}],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Blurred image"}]
+    },
+
+    { "id": "flatten-colors", "name": "Flatten Colors", "category": "Image",
+      "description": "Reduces number of distinct colors (posterization).",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Input image"}],
+      "widgets": [{"name": "levels", "type": "INT", "desc": "Number of color levels"}],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Flattened image"}]
+    },
+
+    { "id": "hue-rotation", "name": "Hue Rotation", "category": "Image",
+      "description": "Rotates the hue channel of the image by a specified degree.",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Input image"}],
+      "widgets": [{"name": "degrees", "type": "FLOAT", "desc": "Hue rotation in degrees"}],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Hue-shifted image"}]
+    },
+
+    { "id": "swap-color-mode", "name": "Swap Color Mode", "category": "Image",
+      "description": "Converts between color modes (RGB ↔ BGR, etc.).",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Input image"}],
+      "widgets": [{"name": "mode", "type": "COMBO", "desc": "Target color mode"}],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Converted image"}]
+    },
+
+    { "id": "instagram-filters", "name": "Instagram Filters", "category": "Image",
+      "description": "Applies stylized image filters mimicking popular social media looks.",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Input image"}],
+      "widgets": [{"name": "filter_name", "type": "COMBO", "desc": "Filter selection"}],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Filtered image"}]
+    },
+
+    { "id": "glitch-effect", "name": "Glitch Effect", "category": "Image",
+      "description": "Applies digital glitch artifacts to the image.",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Input image"}],
+      "widgets": [{"name": "intensity", "type": "FLOAT", "desc": "Glitch intensity"}],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Glitched image"}]
+    },
+
+    { "id": "latent-maker", "name": "Latent Maker", "category": "Latent",
+      "description": "Creates empty latent tensors at specified dimensions with aspect ratio presets.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "width / height", "type": "INT", "desc": "Dimensions in pixels"},
+        {"name": "batch_size", "type": "INT", "desc": "Number of latents"},
+        {"name": "show_used_values", "type": "BOOLEAN", "desc": "Display passed values"},
+        {"name": "allow_external_linking", "type": "BOOLEAN", "desc": "Topbar UE toggle"}
+      ],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "desc": "Empty latent tensor"},
+        {"name": "latentmaker.bndl", "type": "BNDL", "desc": "Bundle containing the latent"}
+      ]
+    },
+
+    { "id": "model-citizen", "name": "Model Citizen", "category": "Loaders",
+      "description": "Unified model loader for checkpoint, CLIP, and VAE. Supports LoRA stacking via an upstream LORA_STACK input.",
+      "image": null,
+      "inputs": [
+        {"name": "lora_stack", "type": "LORA_STACK", "desc": "Optional LoRA stack input"}
+      ],
+      "widgets": [
+        {"name": "ckpt_name", "type": "COMBO", "desc": "Checkpoint selection"},
+        {"name": "vae_name", "type": "COMBO", "desc": "VAE selection (\"baked\" = use checkpoint's built-in)"},
+        {"name": "show_used_values", "type": "BOOLEAN", "desc": "Display passed values"},
+        {"name": "allow_external_linking", "type": "BOOLEAN", "desc": "Topbar UE toggle"}
+      ],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "desc": "Loaded model"},
+        {"name": "CLIP", "type": "CLIP", "desc": "CLIP text encoder"},
+        {"name": "VAE", "type": "VAE", "desc": "VAE decoder"},
+        {"name": "modelcitizen.bndl", "type": "BNDL", "desc": "Bundle containing all three"}
+      ]
+    },
+
+    { "id": "lora-stack", "name": "Lora Stack", "category": "Loaders",
+      "description": "Stacks multiple LoRA models for application by Model Citizen.",
+      "image": null,
+      "inputs": [{"name": "lora_stack", "type": "LORA_STACK", "desc": "Optional upstream stack"}],
+      "widgets": [
+        {"name": "lora_1/2/3", "type": "COMBO", "desc": "LoRA model selections"},
+        {"name": "weight_1/2/3", "type": "FLOAT", "desc": "LoRA strength multipliers"}
+      ],
+      "outputs": [{"name": "LORA_STACK", "type": "LORA_STACK", "desc": "Combined LoRA stack"}]
+    },
+
+    { "id": "file-saver", "name": "File Saver", "category": "Output",
+      "description": "Saves images to disk with configurable naming patterns.",
+      "image": null,
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "desc": "Images to save"},
+        {"name": "filename_prefix", "type": "STRING", "desc": "Filename pattern"}
+      ],
+      "widgets": [
+        {"name": "format", "type": "COMBO", "desc": "\"png\", \"jpg\", \"webp\""},
+        {"name": "quality", "type": "INT", "desc": "JPEG/WebP quality (1–100)"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "multisaver", "name": "MultiSaver", "category": "Output",
+      "description": "Multi-format image saver with integrated processing pipelines. Each output type can be independently enabled with its own sub-settings accessible via icon toggles.",
+      "image": null,
+      "inputs": [{"name": "images", "type": "IMAGE", "desc": "Images to save"}],
+      "widgets": [
+        {"name": "save_original", "type": "BOOLEAN", "desc": "Save the original image"},
+        {"name": "save_lineart", "type": "BOOLEAN", "desc": "Extract and save lineart (Nikosis-style sketch)"},
+        {"name": "save_canny", "type": "BOOLEAN", "desc": "Extract and save Canny edge detection"},
+        {"name": "save_depth", "type": "BOOLEAN", "desc": "Generate and save depth map"},
+        {"name": "save_normal", "type": "BOOLEAN", "desc": "Generate and save normal map"},
+        {"name": "save_highlight", "type": "BOOLEAN", "desc": "Generate and save highlight/shadow mask"},
+        {"name": "save_palette", "type": "BOOLEAN", "desc": "Extract and save color palette grid"},
+        {"name": "format", "type": "COMBO", "desc": "Output format"},
+        {"name": "user_notes", "type": "STRING", "desc": "Metadata notes to embed"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "panel-model-citizen", "name": "Panel Model Citizen", "category": "Panels",
+      "description": "Panelized, PCB-style version of Model Citizen. Single BNDL output. Double-click to configure checkpoint, VAE, and LoRAs.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": [{"name": "modelcitizen.bndl", "type": "BNDL", "desc": "Bundle with MODEL, CLIP, VAE"}]
+    },
+
+    { "id": "panel-master-prompt", "name": "Panel Master Prompt", "category": "Panels",
+      "description": "Panelized, PCB-style version of Master Prompt. Single BNDL output. Double-click to configure prompts and model type.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": [{"name": "masterprompt.bndl", "type": "BNDL", "desc": "Bundle with positive and negative CONDITIONING"}]
+    },
+
+    { "id": "panel-latent-maker", "name": "Panel Latent Maker", "category": "Panels",
+      "description": "Panelized, PCB-style version of Latent Maker. Single BNDL output. Double-click to set dimensions.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": [{"name": "latentmaker.bndl", "type": "BNDL", "desc": "Bundle containing a LATENT tensor"}]
+    },
+
+    { "id": "panel-sampler", "name": "Panel Sampler", "category": "Panels",
+      "description": "Virtual sampler that expands at execution time into a full DeBNDLer → Sampler → ReBNDLer pipeline via the macro expander. Outputs IMAGE, LATENT, and combined bundle.",
+      "image": null,
+      "inputs": [
+        {"name": "modelcitizen.bndl", "type": "BNDL", "desc": "Model Citizen bundle"},
+        {"name": "masterprompt.bndl", "type": "BNDL", "desc": "Master Prompt bundle"},
+        {"name": "latentmaker.bndl", "type": "BNDL", "desc": "Latent Maker bundle"},
+        {"name": "shima.commonparams", "type": "SHIMA_COMMON", "desc": "Common parameters"}
+      ],
+      "widgets": [],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "desc": "Generated image"},
+        {"name": "LATENT", "type": "LATENT", "desc": "Final latent"},
+        {"name": "shimasampler.bndl", "type": "BNDL", "desc": "Combined output bundle"}
+      ]
+    },
+
+    { "id": "setup-hub", "name": "Setup Hub", "category": "Panels",
+      "description": "Central configuration and dependency management node. Manages style thumbnail packs and asset downloads. Does not process workflow data — it's a UI anchor for the Shima Bootstrap system.",
+      "image": null,
+      "inputs": [{"name": "custom_download_url", "type": "STRING", "desc": "Override URL for pack downloads"}],
+      "widgets": [
+        {"name": "active_style_thumbnails", "type": "COMBO", "desc": "Style thumbnail pack to use"},
+        {"name": "auto_update", "type": "BOOLEAN", "desc": "Enable automatic pack updates"}
+      ],
+      "outputs": [{"name": "STATUS", "type": "STRING", "desc": "Current pack and update status"}]
+    },
+
+    { "id": "common-params-passer", "name": "Common Params Passer", "category": "Panels",
+      "description": "Unpacks a Shima Common Params bundle into individual typed outputs (seed, width, height, project name, save path, collision ID, timestamp).",
+      "image": null,
+      "inputs": [{"name": "shima_commonparams", "type": "DICT", "desc": "Shima.Commons bundle"}],
+      "widgets": [],
+      "outputs": [
+        {"name": "shima.commonparams", "type": "DICT", "desc": "Pass-through of full bundle"},
+        {"name": "SEED", "type": "INT", "desc": "Seed value"},
+        {"name": "WIDTH / HEIGHT", "type": "INT", "desc": "Target dimensions"},
+        {"name": "PROJECT_NAME", "type": "STRING", "desc": "Project name"},
+        {"name": "SAVE_PATH", "type": "STRING", "desc": "Save directory path"},
+        {"name": "COLLISION_ID", "type": "STRING", "desc": "Unique run ID"},
+        {"name": "TIMESTAMP", "type": "STRING", "desc": "Execution timestamp"}
+      ]
+    },
+
+    { "id": "breaker", "name": "Breaker", "category": "Routing",
+      "description": "Physical toggle switch node that controls a group of Panel Switches. In breaker mode all connected switches mirror its state. In toggle mode it inverts connected switch states.",
+      "image": null,
+      "inputs": [{"name": "*", "type": "ANY", "desc": "Any signal type"}],
+      "widgets": [
+        {"name": "state", "type": "COMBO", "desc": "\"on\", \"off\", or \"bypass\""},
+        {"name": "scale", "type": "FLOAT", "desc": "Visual scale factor"}
+      ],
+      "outputs": [{"name": "*", "type": "ANY", "desc": "Pass-through or bypass"}]
+    },
+
+    { "id": "panel-switch", "name": "Panel Switch", "category": "Routing",
+      "description": "Companion to Breaker. Receives the Breaker's state and applies bypass logic to downstream nodes. Renders as a compact toggle without a title bar.",
+      "image": null,
+      "inputs": [{"name": "*", "type": "ANY", "desc": "Any signal type"}],
+      "widgets": [],
+      "outputs": [
+        {"name": "*", "type": "ANY", "desc": "Pass-through signal"},
+        {"name": "BOOLEAN", "type": "BOOLEAN", "desc": "Current switch state"}
+      ]
+    },
+
+    { "id": "debndler-modelcitizen", "name": "DeBNDLer (Model Citizen)", "category": "Routing",
+      "description": "Unpacks a Model Citizen BNDL into individual MODEL, CLIP, VAE, and name_string outputs for use with non-Shima nodes.",
+      "image": null,
+      "inputs": [{"name": "modelcitizen.bndl", "type": "BNDL", "desc": "Model Citizen bundle"}],
+      "widgets": [],
+      "outputs": [
+        {"name": "Model", "type": "MODEL", "desc": "Loaded model"},
+        {"name": "Clip", "type": "CLIP", "desc": "CLIP text encoder"},
+        {"name": "VAE", "type": "VAE", "desc": "VAE decoder"},
+        {"name": "name_string", "type": "STRING", "desc": "Model name"}
+      ]
+    },
+
+    { "id": "rebndler-modelcitizen", "name": "ReBNDLer (Model Citizen)", "category": "Routing",
+      "description": "Packs individual MODEL, CLIP, VAE values back into a modelcitizen.bndl for Shima-native consumption.",
+      "image": null,
+      "inputs": [
+        {"name": "Model", "type": "MODEL", "desc": "Loaded model"},
+        {"name": "Clip", "type": "CLIP", "desc": "CLIP text encoder"},
+        {"name": "VAE", "type": "VAE", "desc": "VAE decoder"}
+      ],
+      "widgets": [],
+      "outputs": [{"name": "modelcitizen.bndl", "type": "BNDL", "desc": "Packed bundle"}]
+    },
+
+    { "id": "debndler-masterprompt", "name": "DeBNDLer (Master Prompt)", "category": "Routing",
+      "description": "Unpacks a Master Prompt BNDL into individual CONDITIONING outputs including separate CLIP-L-only, CLIP-G-only, and T5-only conditionings.",
+      "image": null,
+      "inputs": [{"name": "masterprompt.bndl", "type": "BNDL", "desc": "Master Prompt bundle"}],
+      "widgets": [],
+      "outputs": [
+        {"name": "positive / negative", "type": "CONDITIONING", "desc": "Full conditionings"},
+        {"name": "CLIP_L_ONLY / CLIP_G_ONLY / T5_ONLY", "type": "CONDITIONING", "desc": "Individual encoder conditionings"},
+        {"name": "pos_string / neg_string", "type": "STRING", "desc": "Raw prompt text"}
+      ]
+    },
+
+    { "id": "rebndler-masterprompt", "name": "ReBNDLer (Master Prompt)", "category": "Routing",
+      "description": "Packs individual CONDITIONING values back into a masterprompt.bndl.",
+      "image": null,
+      "inputs": [
+        {"name": "positive / negative", "type": "CONDITIONING", "desc": "Conditionings to pack"}
+      ],
+      "widgets": [],
+      "outputs": [{"name": "masterprompt.bndl", "type": "BNDL", "desc": "Packed bundle"}]
+    },
+
+    { "id": "debndler-latentmaker", "name": "DeBNDLer (Latent Maker)", "category": "Routing",
+      "description": "Unpacks a Latent Maker BNDL into latent, seed, width, and height outputs.",
+      "image": null,
+      "inputs": [{"name": "latentmaker.bndl", "type": "BNDL", "desc": "Latent Maker bundle"}],
+      "widgets": [],
+      "outputs": [
+        {"name": "latent", "type": "LATENT", "desc": "Latent tensor"},
+        {"name": "s33d", "type": "INT", "desc": "Seed value"},
+        {"name": "width / height", "type": "INT", "desc": "Dimensions"}
+      ]
+    },
+
+    { "id": "rebndler-latentmaker", "name": "ReBNDLer (Latent Maker)", "category": "Routing",
+      "description": "Packs individual latent, seed, and dimension values back into a latentmaker.bndl.",
+      "image": null,
+      "inputs": [
+        {"name": "latent", "type": "LATENT", "desc": "Latent tensor"},
+        {"name": "s33d", "type": "INT", "desc": "Seed value"},
+        {"name": "width / height", "type": "INT", "desc": "Dimensions"}
+      ],
+      "widgets": [],
+      "outputs": [{"name": "latentmaker.bndl", "type": "BNDL", "desc": "Packed bundle"}]
+    },
+
+    { "id": "debndler-shimasampler", "name": "DeBNDLer (Shima Sampler)", "category": "Routing",
+      "description": "Unpacks a Shima Sampler BNDL into Image, Latent, and Seed Used outputs.",
+      "image": null,
+      "inputs": [{"name": "shimasampler.bndl", "type": "BNDL", "desc": "Shima Sampler bundle"}],
+      "widgets": [],
+      "outputs": [
+        {"name": "Image", "type": "IMAGE", "desc": "Generated image"},
+        {"name": "Latent", "type": "LATENT", "desc": "Final latent"},
+        {"name": "Seed Used", "type": "INT", "desc": "Actual seed used"}
+      ]
+    },
+
+    { "id": "rebndler-shimasampler", "name": "ReBNDLer (Shima Sampler)", "category": "Routing",
+      "description": "Packs Image, Latent, and Seed values into a shimasampler.bndl.",
+      "image": null,
+      "inputs": [
+        {"name": "Image", "type": "IMAGE", "desc": "Generated image"},
+        {"name": "Latent", "type": "LATENT", "desc": "Final latent"},
+        {"name": "Seed Used", "type": "INT", "desc": "Actual seed used"}
+      ],
+      "widgets": [],
+      "outputs": [{"name": "shimasampler.bndl", "type": "BNDL", "desc": "Packed bundle"}]
+    },
+
+    { "id": "smart-route", "name": "Smart Routes (Route1–Route5)", "category": "Routing",
+      "description": "Named pass-through reroute nodes with color-coded labels. 5 variants for organizing wire runs. Directionality can be changed for precision layouts.",
+      "image": null,
+      "inputs": [{"name": "*", "type": "ANY", "desc": "Any type"}],
+      "widgets": [],
+      "outputs": [{"name": "*", "type": "ANY", "desc": "Same type pass-through"}]
+    },
+
+    { "id": "multi-pipe", "name": "Multi-Pipe In/Out", "category": "Routing",
+      "description": "Legacy multi-input/output pipe nodes for bundling up to 15 signals. Available in 15-input and XL variants.",
+      "image": null,
+      "inputs": [{"name": "*×15", "type": "ANY", "desc": "Up to 15 typed connections"}],
+      "widgets": [],
+      "outputs": [{"name": "*×15", "type": "ANY", "desc": "Up to 15 typed outputs"}]
+    },
+
+    { "id": "sampler", "name": "Sampler", "category": "Sampling",
+      "description": "Core KSampler wrapper with integrated seed management, scheduler selection, and HiRes Fix support.",
+      "image": null,
+      "inputs": [
+        {"name": "model", "type": "MODEL", "desc": "Diffusion model"},
+        {"name": "positive / negative", "type": "CONDITIONING", "desc": "Conditionings"},
+        {"name": "latent_image", "type": "LATENT", "desc": "Starting latent"},
+        {"name": "vae", "type": "VAE", "desc": "VAE for image decode"}
+      ],
+      "widgets": [
+        {"name": "steps", "type": "INT", "desc": "Sampling steps"},
+        {"name": "cfg", "type": "FLOAT", "desc": "CFG scale"},
+        {"name": "sampler_name", "type": "COMBO", "desc": "Sampler algorithm"},
+        {"name": "scheduler", "type": "COMBO", "desc": "Noise scheduler"},
+        {"name": "seed", "type": "INT", "desc": "Random seed"},
+        {"name": "denoise", "type": "FLOAT", "desc": "Denoising strength"}
+      ],
+      "outputs": [
+        {"name": "LATENT", "type": "LATENT", "desc": "Sampled latent"},
+        {"name": "IMAGE", "type": "IMAGE", "desc": "Decoded image"},
+        {"name": "INT", "type": "INT", "desc": "Seed used"}
+      ]
+    },
+
+    { "id": "seed-controller", "name": "Seed Controller", "category": "Sampling",
+      "description": "Deterministic seed management with increment, decrement, and randomize modes.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "seed", "type": "INT", "desc": "Base seed value"},
+        {"name": "mode", "type": "COMBO", "desc": "\"fixed\", \"increment\", \"decrement\", \"randomize\""}
+      ],
+      "outputs": [{"name": "INT", "type": "INT", "desc": "Seed value"}]
+    },
+
+    { "id": "styler-selector", "name": "Styler (Selector)", "category": "Styler",
+      "description": "Browse and select art styles from the Shima style library. Injects positive/negative prompt modifiers. Stackable with custom connectors.",
+      "image": null,
+      "inputs": [
+        {"name": "positive / negative", "type": "CONDITIONING", "desc": "Base conditionings"},
+        {"name": "clip", "type": "CLIP", "desc": "CLIP model"},
+        {"name": "base_prompt", "type": "STRING", "desc": "Main positive prompt"},
+        {"name": "negative_prompt", "type": "STRING", "desc": "Main negative prompt"}
+      ],
+      "widgets": [
+        {"name": "active", "type": "BOOLEAN", "desc": "On: applies styles. Off: passes through."},
+        {"name": "mode", "type": "COMBO", "desc": "Single: replace. Stack: accumulate."}
+      ],
+      "outputs": [
+        {"name": "positive / negative", "type": "CONDITIONING", "desc": "Styled conditionings"},
+        {"name": "style_mode", "type": "STRING", "desc": "Applied style name"}
+      ]
+    },
+
+    { "id": "styler-iterator", "name": "Styler (Iterator)", "category": "Styler",
+      "description": "Automatically cycles through a list of styles with every generation. Supports auto-queue for batch comparison and index control (increment, decrement, randomize).",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "style_mode", "type": "COMBO", "desc": "\"Artists\" or \"User Styles\""},
+        {"name": "index_mode", "type": "COMBO", "desc": "Increment, Decrement, or Randomize"},
+        {"name": "batch_size", "type": "INT", "desc": "Styles to process before stopping"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "styler-gallery", "name": "Styler (Gallery)", "category": "Styler",
+      "description": "Visual gallery browser for the style library with thumbnail previews. Same search/filter tools as the Selector.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": []
+    },
+
+    { "id": "styler-favorites", "name": "Styler (Favorites)", "category": "Styler",
+      "description": "Lightweight text-based style selector. Accepts a comma-separated list of IDs (e.g., A1, U5) and generates the combined prompt.",
+      "image": null,
+      "inputs": [],
+      "widgets": [{"name": "favorites_list", "type": "STRING", "desc": "Comma-separated style IDs (e.g., A1, U5, A100)"}],
+      "outputs": []
+    },
+
+    { "id": "control-panel", "name": "Control Panel", "category": "System",
+      "description": "Floating panel that wirelessly mirrors widgets from any other node. Right-click a widget on any node to pin it. Dragging pinned sliders auto-syncs the value to the original node.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": []
+    },
+
+    { "id": "canary", "name": "Canary", "category": "System",
+      "description": "Ghost process detector — scans for stale ComfyUI processes consuming VRAM and alerts the user.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": [{"name": "STRING", "type": "STRING", "desc": "Detection report"}]
+    },
+
+    { "id": "custodian", "name": "Custodian", "category": "System",
+      "description": "Centralized maintenance node with a 6-button physical chassis. Handles pycache cleanup, global Dymo/Headline toggles, group restriction clearing, and the Extras modal.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": [],
+      "buttons": [
+        {"label": "☢️ NUKE __PYCACHE__", "desc": "Recursively deletes Python cache folders", "color": "#ff4444"},
+        {"label": "🏷️ TOGGLE ALL DYMOS", "desc": "Globally hides/shows all Dymo Labels", "color": "#44aaff"},
+        {"label": "📰 TOGGLE ALL HEADLINES", "desc": "Globally hides/shows all Headline nodes", "color": "#44aaff"},
+        {"label": "🏝️ CLEAR GROUP-REGS", "desc": "Clears UE group restriction regex from all nodes", "color": "#00df81"},
+        {"label": "📂 OPEN EXTRAS", "desc": "Opens Extras modal (Help, Styler, Docs, Excel)", "color": "#ffffff"},
+        {"label": "🌋 NUKE GROUPS & REGS", "desc": "Deletes all Groups and clears all UE restrictions", "color": "#ff8800"}
+      ]
+    },
+
+    { "id": "system-buffer", "name": "System Buffer", "category": "System",
+      "description": "Manages ComfyUI system memory allocation and buffer settings.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": []
+    },
+
+    { "id": "seed-logger", "name": "Seed Logger", "category": "System",
+      "description": "Logs all seeds used during execution for reproducibility tracking. Clicking a seed in the log copies it to the clipboard.",
+      "image": null,
+      "inputs": [{"name": "seed", "type": "INT", "desc": "Seed to log"}],
+      "widgets": [],
+      "outputs": [{"name": "INT", "type": "INT", "desc": "Same seed (pass-through)"}]
+    },
+
+    { "id": "nsfw-checker", "name": "NSFW Content Checker", "category": "System",
+      "description": "Scans generated images for NSFW content. Can output black-bar, mosaic, and blurred variants with G–NC-17 ratings displayed on thumbnails.",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Image to check"}],
+      "widgets": [],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "desc": "Pass-through image"},
+        {"name": "FLOAT", "type": "FLOAT", "desc": "NSFW confidence score"}
+      ]
+    },
+
+    { "id": "pilot-light", "name": "Pilot Light", "category": "System",
+      "description": "Single LED indicator that reacts to input signals (Boolean, String, Math, or Tensor triggers). Scales proportionally with neutral-colored link ports.",
+      "image": null,
+      "inputs": [{"name": "*", "type": "ANY", "desc": "Trigger signal"}],
+      "widgets": [
+        {"name": "trigger_mode", "type": "COMBO", "desc": "Boolean, String, Math, or Tensor"},
+        {"name": "scale", "type": "FLOAT", "desc": "Visual scale factor"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "multi-state-indicator", "name": "Multi-State Indicator", "category": "System",
+      "description": "Three-state control room indicator rendered as a rounded-corner square. 6 trigger modes: Hardware Sync, Number Match, Math, String, Regex, and Boolean. Colors for each state are configurable.",
+      "image": null,
+      "inputs": [{"name": "*", "type": "ANY", "desc": "Trigger signal"}],
+      "widgets": [
+        {"name": "trigger_mode", "type": "COMBO", "desc": "Hardware Sync, Number Match, Math, String, Regex, Boolean"},
+        {"name": "state_1/2_value", "type": "ANY", "desc": "Values that trigger each state"}
+      ],
+      "outputs": [{"name": "value", "type": "ANY", "desc": "Input value pass-through"}]
+    },
+
+    { "id": "rgb-logic-array", "name": "RGB Logic Array", "category": "System",
+      "description": "Three-channel (R, G, B) logic evaluator with additive color blending on a rendered lens. Supports Boolean, Number, Hardware Sync, and String Eval modes.",
+      "image": null,
+      "inputs": [{"name": "R / G / B", "type": "ANY", "desc": "Channel inputs"}],
+      "widgets": [{"name": "mode", "type": "COMBO", "desc": "Boolean, Number, Hardware Sync, or String Eval"}],
+      "outputs": []
+    },
+
+    { "id": "dymo-label", "name": "Dymo Label", "category": "System",
+      "description": "Embossed text label with colored tape. Renders 'Always on Top' with custom font support and optional angle jitter. Can be toggled globally via Custodian.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "text", "type": "STRING", "desc": "Label text"},
+        {"name": "color", "type": "STRING", "desc": "Tape color (hex)"},
+        {"name": "font", "type": "COMBO", "desc": "Font selection"},
+        {"name": "jitter", "type": "FLOAT", "desc": "Angle randomization"}
+      ],
+      "outputs": []
+    },
+
+    { "id": "fader", "name": "Fader", "category": "System",
+      "description": "Vertical drag-to-set fader with gradient cap, dual LED bars, and digital readout. Physical-style hardware control.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "value", "type": "FLOAT", "desc": "Current fader value"},
+        {"name": "min_val / max_val", "type": "FLOAT", "desc": "Value range"}
+      ],
+      "outputs": [{"name": "FLOAT", "type": "FLOAT", "desc": "Output value"}]
+    },
+
+    { "id": "rotary-encoder", "name": "Rotary Encoder (Knob)", "category": "System",
+      "description": "Endless encoder with metallic cap and radial LED arc. Physical-style hardware control.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "value", "type": "FLOAT", "desc": "Current knob value"},
+        {"name": "min_val / max_val", "type": "FLOAT", "desc": "Value range"}
+      ],
+      "outputs": [{"name": "FLOAT", "type": "FLOAT", "desc": "Output value"}]
+    },
+
+    { "id": "omnijog", "name": "Omnijog", "category": "System",
+      "description": "Multi-channel parameter controller with a spring-loaded shuttle wheel. Up to 20 independently-labeled channels with their own values, step sizes, and LED colors. Outputs a MUX signal carrying all channel values.",
+      "image": null,
+      "inputs": [],
+      "widgets": [
+        {"name": "active_channel", "type": "STRING", "desc": "Currently selected channel"},
+        {"name": "val_0–val_19", "type": "FLOAT", "desc": "Channel values (JS-managed)"},
+        {"name": "label_0–label_19", "type": "STRING", "desc": "Channel labels (default: CFG, SEED, LORA1–LORA18)"},
+        {"name": "step_0–step_19", "type": "FLOAT", "desc": "Per-channel step size"},
+        {"name": "colors", "type": "STRING", "desc": "Comma-separated hex colors for channel LEDs"},
+        {"name": "rows", "type": "INT", "desc": "Number of LED bar rows (2–20)"},
+        {"name": "scale", "type": "FLOAT", "desc": "Visual scale factor"}
+      ],
+      "outputs": [{"name": "MUX", "type": "MUX_SIGNAL", "desc": "Multiplexed output carrying all channel values"}]
+    },
+
+    { "id": "demux", "name": "Demux", "category": "System",
+      "description": "Filters a MUX signal by channel name and outputs the extracted float value.",
+      "image": null,
+      "inputs": [{"name": "mux", "type": "MUX_SIGNAL", "desc": "Multiplexed input"}],
+      "widgets": [{"name": "target_channel", "type": "COMBO", "desc": "Channel to extract"}],
+      "outputs": [{"name": "FLOAT", "type": "FLOAT", "desc": "Extracted value"}]
+    },
+
+    { "id": "demux-list", "name": "Demux List", "category": "System",
+      "description": "Converts an active MUX integer channel to a STRING output via an options array. Traces downstream connections to auto-populate dropdown options.",
+      "image": null,
+      "inputs": [{"name": "mux", "type": "MUX_SIGNAL", "desc": "Multiplexed input"}],
+      "widgets": [{"name": "options", "type": "STRING", "desc": "Comma-separated option list"}],
+      "outputs": [{"name": "STRING", "type": "STRING", "desc": "Selected option label"}]
+    },
+
+    { "id": "passers", "name": "Passers (Image/Latent/Model/CLIP/VAE/Mask/Conditioning)", "category": "Utilities",
+      "description": "A family of utility nodes that provide optional-input pass-throughs. Their optional inputs prevent ComfyUI's auto-wiring from filling required inputs with mismatched types. Use as stable UE broadcast targets and as protective plugs on unused inputs.",
+      "image": null,
+      "inputs": [{"name": "any_input", "type": "TYPE-SPECIFIC", "desc": "Optional typed input"}],
+      "widgets": [],
+      "outputs": [{"name": "any_output", "type": "TYPE-SPECIFIC", "desc": "Same value, same type"}]
+    },
+
+    { "id": "string-concat", "name": "String Concat", "category": "Utilities",
+      "description": "Concatenates two or more strings with a configurable separator.",
+      "image": null,
+      "inputs": [{"name": "strings", "type": "STRING×N", "desc": "Input strings"}],
+      "widgets": [{"name": "separator", "type": "STRING", "desc": "Join separator"}],
+      "outputs": [{"name": "STRING", "type": "STRING", "desc": "Concatenated result"}]
+    },
+
+    { "id": "string-splitter", "name": "String Splitter", "category": "Utilities",
+      "description": "Splits a string by delimiter and outputs individual segments.",
+      "image": null,
+      "inputs": [{"name": "string", "type": "STRING", "desc": "Input string"}],
+      "widgets": [{"name": "delimiter", "type": "STRING", "desc": "Split character"}],
+      "outputs": [{"name": "STRING×N", "type": "STRING", "desc": "Individual segments"}]
+    },
+
+    { "id": "string-switch", "name": "String Switch", "category": "Utilities",
+      "description": "Selects between two string inputs based on a boolean condition.",
+      "image": null,
+      "inputs": [
+        {"name": "true_input / false_input", "type": "STRING", "desc": "Options"},
+        {"name": "condition", "type": "BOOLEAN", "desc": "Selection condition"}
+      ],
+      "widgets": [],
+      "outputs": [{"name": "STRING", "type": "STRING", "desc": "Selected string"}]
+    },
+
+    { "id": "choice-switch", "name": "Choice Switch", "category": "Utilities",
+      "description": "Multi-option selector switch with configurable option count.",
+      "image": null,
+      "inputs": [{"name": "option_1–N", "type": "ANY", "desc": "Switchable inputs"}],
+      "widgets": [{"name": "choice", "type": "COMBO", "desc": "Active selection"}],
+      "outputs": [{"name": "*", "type": "ANY", "desc": "Selected option"}]
+    },
+
+    { "id": "the-nothing", "name": "The Nothing", "category": "Utilities",
+      "description": "Universal pass-through node that accepts any input type and outputs it unchanged. Type-agnostic relay point for IMAGE, LATENT, MODEL, CONDITIONING, or any other type.",
+      "image": null,
+      "inputs": [{"name": "any_input", "type": "ANY", "desc": "Any type"}],
+      "widgets": [],
+      "outputs": [{"name": "any_output", "type": "ANY", "desc": "Same value, same type"}]
+    },
+
+    { "id": "highway-bypass", "name": "Highway Bypass", "category": "Utilities",
+      "description": "Routes a signal through or around a processing chain based on a boolean switch. All inputs are optional.",
+      "image": null,
+      "inputs": [{"name": "*", "type": "ANY", "desc": "Any signal"}],
+      "widgets": [{"name": "active", "type": "BOOLEAN", "desc": "Enable/bypass the highway"}],
+      "outputs": [{"name": "*", "type": "ANY", "desc": "Routed signal"}]
+    },
+
+    { "id": "highway-detour", "name": "Highway Detour", "category": "Utilities",
+      "description": "Entrance ramp to a highway segment. Receives a route_automate signal from Choice Switch nodes for programmatic routing.",
+      "image": null,
+      "inputs": [{"name": "*", "type": "ANY", "desc": "Signal to route"}],
+      "widgets": [],
+      "outputs": [{"name": "*", "type": "ANY", "desc": "Routed signal"}]
+    },
+
+    { "id": "highway-merge", "name": "Highway Merge", "category": "Utilities",
+      "description": "Exit ramp from a highway segment. Syncs visually with its paired Detour node.",
+      "image": null,
+      "inputs": [{"name": "*", "type": "ANY", "desc": "Routed signal"}],
+      "widgets": [],
+      "outputs": [{"name": "*", "type": "ANY", "desc": "Merged signal"}]
+    },
+
+    { "id": "highway-terminator", "name": "Highway Bypass Terminator", "category": "Utilities",
+      "description": "Stop node that prevents bypass traversal from leaking beyond a defined boundary.",
+      "image": null,
+      "inputs": [],
+      "widgets": [],
+      "outputs": []
+    },
+
+    { "id": "transformer", "name": "Transformer", "category": "Utilities",
+      "description": "Conditional string routing with pattern matching. Supports Atomic Switch syntax (||| delimiters) for multi-branch routing, variable injection (!!!, @@@, ###, $$$), and type inference (auto-casts strings to INT, FLOAT, or BOOLEAN).",
+      "image": null,
+      "inputs": [
+        {"name": "input", "type": "STRING", "desc": "String to evaluate"},
+        {"name": "stream", "type": "STRING", "desc": "Mapping rules (multiline)"},
+        {"name": "var_!!!, var_@@@, etc.", "type": "ANY", "desc": "Variable injection inputs"}
+      ],
+      "widgets": [{"name": "output_all_as_strings", "type": "BOOLEAN", "desc": "Force string output"}],
+      "outputs": [
+        {"name": "result", "type": "ANY", "desc": "Matched result"},
+        {"name": "type", "type": "STRING", "desc": "Inferred output type name"}
+      ]
+    },
+
+    { "id": "int-primitive", "name": "Int", "category": "Utilities",
+      "description": "Simple integer value source node.",
+      "image": null,
+      "inputs": [],
+      "widgets": [{"name": "value", "type": "INT", "desc": "Integer value"}],
+      "outputs": [{"name": "INT", "type": "INT", "desc": "Integer output"}]
+    },
+
+    { "id": "float-primitive", "name": "Float", "category": "Utilities",
+      "description": "Simple float value source node.",
+      "image": null,
+      "inputs": [],
+      "widgets": [{"name": "value", "type": "FLOAT", "desc": "Float value"}],
+      "outputs": [{"name": "FLOAT", "type": "FLOAT", "desc": "Float output"}]
+    },
+
+    { "id": "string-primitive", "name": "String", "category": "Utilities",
+      "description": "Simple string value source with multiline support.",
+      "image": null,
+      "inputs": [],
+      "widgets": [{"name": "value", "type": "STRING", "desc": "Text value (multiline)"}],
+      "outputs": [{"name": "STRING", "type": "STRING", "desc": "String output"}]
+    },
+
+    { "id": "rich-content", "name": "Rich Content", "category": "Utilities",
+      "description": "Markdown/HTML content display node. Can display markdown, URLs, iFrame websites (site must allow iFrame), and YouTube videos.",
+      "image": null,
+      "inputs": [],
+      "widgets": [{"name": "content", "type": "STRING", "desc": "Markdown or HTML content"}],
+      "outputs": []
+    },
+
+    { "id": "rich-display", "name": "Rich Display", "category": "Utilities",
+      "description": "Enhanced text display with formatting for workflow output readouts.",
+      "image": null,
+      "inputs": [{"name": "text", "type": "STRING", "desc": "Text to display"}],
+      "widgets": [],
+      "outputs": []
+    },
+
+    { "id": "binary-int-switch", "name": "Binary Int Switch", "category": "Utilities",
+      "description": "Outputs 0 or 1 based on a boolean toggle.",
+      "image": null,
+      "inputs": [],
+      "widgets": [{"name": "state", "type": "BOOLEAN", "desc": "Boolean state"}],
+      "outputs": [{"name": "INT", "type": "INT", "desc": "0 or 1"}]
+    },
+
+    { "id": "add-font-text", "name": "Add Font Text", "category": "Utilities",
+      "description": "Renders text onto an image using a specified TrueType font. Supports positioning, rotation, color (RGBA), and anchor point. Place fonts in Shima/fonts/.",
+      "image": null,
+      "inputs": [{"name": "image", "type": "IMAGE", "desc": "Base image"}],
+      "widgets": [
+        {"name": "font_ttf", "type": "STRING", "desc": "Full path to .ttf font file"},
+        {"name": "text", "type": "STRING", "desc": "Text to render"},
+        {"name": "x / y", "type": "INT", "desc": "Text position"},
+        {"name": "rotation", "type": "FLOAT", "desc": "Rotation in degrees"},
+        {"name": "color", "type": "STRING", "desc": "RGBA color (hex or tuple)"},
+        {"name": "anchor", "type": "COMBO", "desc": "Text anchor point"}
+      ],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "desc": "Image with text rendered"}]
+    }
+
+  ]
+}

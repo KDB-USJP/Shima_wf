@@ -1,11 +1,11 @@
 [
     {
-        "id": "help",
-        "label": "📖 OPEN HELP",
-        "url": "/shima/shima_help.html",
-        "color": "#ffffff",
-        "windowName": "ShimaHelp",
-        "windowSize": "width=800,height=900"
+        "id": "node-ref",
+        "label": "📖 NODE REFERENCE",
+        "url": "/shima/node-reference.html",
+        "color": "#00df81",
+        "windowName": "ShimaNodeRef",
+        "windowSize": "width=1400,height=950"
     },
     {
         "id": "styler",
@@ -19,7 +19,7 @@
         "id": "docs",
         "label": "📚 DOCUMENTATION",
         "url": "/shima/documentation.html",
-        "color": "#44aaff",
+        "color": "#77ccff",
         "windowName": "ShimaDocs",
         "windowSize": "width=1200,height=900"
     },

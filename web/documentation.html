@@ -179,24 +179,44 @@
                 const response = await fetch('/shima/docs/list');
                 const data = await response.json();
                 
+                // Add the special Node Reference link first
+                addSpecialTab('📖 Node Reference', '/shima/node-reference.html', true);
+
                 if (data.files && data.files.length > 0) {
+                    // Friendly display name mapping
+                    const nameMap = {
+                        'getting-started.md': '🚀 Getting Started',
+                        'concepts.md': '💡 Concepts',
+                        'Shima_Node_Reference.md': '📋 Node Reference (MD)',
+                        'faq.md': '❓ FAQ',
+                    };
+
                     data.files.forEach((file, index) => {
                         const btn = document.createElement('button');
                         btn.className = 'tab-btn';
-                        // Clean up name for display
-                        let displayName = file.replace('.md', '').replace(/_/g, ' ').replace(/-/g, ' ');
-                        btn.textContent = displayName.toUpperCase();
+                        btn.textContent = nameMap[file] || file.replace('.md', '').replace(/_/g, ' ');
                         btn.onclick = () => loadDoc(file, btn);
                         tabsContainer.appendChild(btn);
-
-                        // Load first by default
-                        if (index === 0) loadDoc(file, btn);
+                        // Load getting-started by default
+                        if (file === 'getting-started.md') loadDoc(file, btn);
                     });
                 }
             } catch (err) {
                 contentArea.innerHTML = `<h1>Error</h1><p>Failed to load documentation list. ${err.message}</p>`;
                 contentArea.classList.add('loaded');
             }
+        }
+
+        function addSpecialTab(label, url, isFirst) {
+            const btn = document.createElement('button');
+            btn.className = 'tab-btn';
+            btn.textContent = label;
+            btn.onclick = () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                window.open(url, '_blank', 'width=1200,height=900');
+            };
+            tabsContainer.appendChild(btn);
         }
 
         async function loadDoc(filename, btn) {

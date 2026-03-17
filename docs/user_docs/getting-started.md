@@ -23,13 +23,13 @@ Welcome to Shima — a custom node extension and marketplace for ComfyUI that br
 2. Clone the Shima repository:
 
    ```bash
-   git clone https://github.com/KDB-USJP/Shima.wf.git Shima
+   git clone https://github.com/KDB-USJP/shima_wf.git Shima
    ```
 
 3. Install Python dependencies:
 
    ```bash
-   cd Shima
+   cd Shima_wf
    pip install -r requirements.txt
    ```
 

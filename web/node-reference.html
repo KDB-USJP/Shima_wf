@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shima Node Reference</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f0f12;
+            --surface: #161618;
+            --surface2: #1e1e22;
+            --accent: #f2a900;
+            --accent-dim: rgba(242,169,0,0.12);
+            --text: #e0e0e6;
+            --text-dim: #888890;
+            --border: rgba(255,255,255,0.08);
+            --tag-bg: rgba(255,255,255,0.07);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ─── HEADER ─────────────────── */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 40px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--accent);
+            white-space: nowrap;
+            letter-spacing: -0.5px;
+        }
+
+        #search-box {
+            flex: 1;
+            min-width: 200px;
+            max-width: 420px;
+            padding: 10px 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #search-box:focus { border-color: var(--accent); }
+        #search-box::placeholder { color: var(--text-dim); }
+
+        #node-count {
+            color: var(--text-dim);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        /* ─── CATEGORY FILTERS ───────── */
+        #filter-bar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 40px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            position: sticky;
+            top: 73px;
+            z-index: 99;
+        }
+
+        .cat-btn {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .cat-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .cat-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+        }
+
+        /* ─── NODE GRID ──────────────── */
+        #node-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+            padding: 30px 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .node-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: border-color 0.2s, background 0.2s;
+            cursor: default;
+        }
+
+        .node-card:hover {
+            border-color: rgba(242,169,0,0.3);
+            background: var(--surface2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            flex: 1;
+        }
+
+        .card-cat {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            white-space: nowrap;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-dim);
+        }
+
+        /* I/O Section */
+        .io-section { border-top: 1px solid var(--border); padding-top: 12px; }
+
+        .io-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .io-tag {
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: var(--tag-bg);
+            color: var(--text);
+            cursor: help;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .io-tag.input { border-left: 2px solid #44aaff; }
+        .io-tag.output { border-left: 2px solid #00df81; }
+        .io-tag.widget { border-left: 2px solid #ff8800; }
+
+        .io-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        /* Card Footer */
+        .card-footer {
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+
+        .img-stub-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border: 1px dashed rgba(255,255,255,0.2);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .img-stub-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .img-stub-btn.has-image {
+            border-style: solid;
+            border-color: #00df81;
+            color: #00df81;
+        }
+
+        /* ─── LIGHTBOX ───────────────── */
+        #lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+
+        #lightbox.open { display: flex; }
+
+        #lightbox-inner {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 700px;
+            width: 90%;
+            cursor: default;
+            text-align: center;
+        }
+
+        #lightbox-inner h3 { color: var(--accent); margin-bottom: 16px; font-size: 18px; }
+
+        #lightbox-img-area {
+            background: var(--surface2);
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+
+        #lightbox-img-area img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        #lightbox-img-area .stub-icon { font-size: 48px; }
+        #lightbox-img-area .stub-label { font-size: 14px; }
+        #lightbox-img-area .stub-path {
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            padding: 8px 14px;
+            border-radius: 6px;
+            color: #888;
+        }
+
+        #lightbox-close {
+            margin-top: 20px;
+            padding: 10px 24px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        #lightbox-close:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ─── EMPTY STATE ────────────── */
+        #empty-state {
+            display: none;
+            text-align: center;
+            padding: 80px 40px;
+            color: var(--text-dim);
+            grid-column: 1 / -1;
+        }
+
+        #empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        #empty-state p { font-size: 16px; }
+
+        /* ─── SECTION HEADERS ────────── */
+        .section-header {
+            grid-column: 1 / -1;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-transform: uppercase;
+            padding: 10px 0 4px;
+            border-bottom: 1px solid var(--accent-dim);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-header span.count {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-weight: 400;
+            letter-spacing: 0;
+        }
+
+        /* ─── SCROLLBAR ──────────────── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📖 SHIMA NODE REFERENCE</h1>
+        <input type="text" id="search-box" placeholder="Search nodes by name or description…" autocomplete="off">
+        <span id="node-count">Loading…</span>
+    </header>
+
+    <div id="filter-bar">
+        <button class="cat-btn active" data-cat="ALL">ALL</button>
+    </div>
+
+    <div id="node-grid">
+        <div id="empty-state">
+            <div class="icon">🔍</div>
+            <p>No nodes match your search.</p>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div id="lightbox" onclick="closeLightbox(event)">
+        <div id="lightbox-inner">
+            <h3 id="lightbox-title"></h3>
+            <div id="lightbox-img-area">
+                <img id="lightbox-img" src="" alt="">
+                <div class="stub-icon" id="lightbox-icon">📷</div>
+                <div class="stub-label" id="lightbox-stub-msg">No screenshot yet</div>
+                <div class="stub-path" id="lightbox-stub-path"></div>
+            </div>
+            <button id="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let allNodes = [];
+        let activeCategory = 'ALL';
+        let searchQuery = '';
+
+        // Category color map
+        const CAT_COLORS = {
+            'Conditioning': '#cc88ff', 'Design': '#ff88aa', 'Image': '#44aaff',
+            'Latent': '#aa66ff', 'Loaders': '#f2a900', 'Output': '#ff6644',
+            'Panels': '#00df81', 'Routing': '#77ccff', 'Sampling': '#ff4444',
+            'Styler': '#ff88cc', 'System': '#ffaa44', 'Utilities': '#aaaaaa'
+        };
+
+        async function init() {
+            try {
+                const r = await fetch('/shima/node_data.json');
+                const data = await r.json();
+                allNodes = data.nodes;
+
+                // Build category buttons
+                const filterBar = document.getElementById('filter-bar');
+                data.categories.forEach(cat => {
+                    const btn = document.createElement('button');
+                    btn.className = 'cat-btn';
+                    btn.dataset.cat = cat;
+                    btn.textContent = cat.toUpperCase();
+                    btn.style.setProperty('--cat-color', CAT_COLORS[cat] || '#aaa');
+                    btn.onclick = () => setCategory(cat, btn);
+                    filterBar.appendChild(btn);
+                });
+
+                renderNodes();
+
+                // Search
+                document.getElementById('search-box').addEventListener('input', e => {
+                    searchQuery = e.target.value.toLowerCase().trim();
+                    renderNodes();
+                });
+
+            } catch(e) {
+                console.error(e);
+                document.getElementById('node-grid').innerHTML = `<div id="empty-state" style="display:block"><p>Failed to load node data: ${e.message}</p></div>`;
+            }
+        }
+
+        function setCategory(cat, btn) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderNodes();
+        }
+
+        function renderNodes() {
+            const grid = document.getElementById('node-grid');
+            const emptyState = document.getElementById('empty-state');
+
+            // Filter pass
+            let filtered = allNodes.filter(n => {
+                const catOk = (activeCategory === 'ALL') || (n.category === activeCategory);
+                const q = searchQuery;
+                const searchOk = !q || n.name.toLowerCase().includes(q) || n.description.toLowerCase().includes(q) || n.category.toLowerCase().includes(q);
+                return catOk && searchOk;
+            });
+
+            // Clear grid (keep empty state)
+            grid.querySelectorAll(':not(#empty-state)').forEach(el => el.remove());
+
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                document.getElementById('node-count').textContent = '0 nodes';
+                return;
+            }
+            emptyState.style.display = 'none';
+            document.getElementById('node-count').textContent = `${filtered.length} node${filtered.length !== 1 ? 's' : ''}`;
+
+            // Group by category if showing ALL
+            if (activeCategory === 'ALL' && !searchQuery) {
+                const byCategory = {};
+                filtered.forEach(n => {
+                    if (!byCategory[n.category]) byCategory[n.category] = [];
+                    byCategory[n.category].push(n);
+                });
+                Object.entries(byCategory).forEach(([cat, nodes]) => {
+                    const header = document.createElement('div');
+                    header.className = 'section-header';
+                    const color = CAT_COLORS[cat] || '#aaa';
+                    header.innerHTML = `<span style="color:${color}">${cat}</span> <span class="count">${nodes.length} node${nodes.length !== 1 ? 's' : ''}</span>`;
+                    grid.insertBefore(header, emptyState);
+                    nodes.forEach(n => grid.insertBefore(makeCard(n), emptyState));
+                });
+            } else {
+                filtered.forEach(n => grid.insertBefore(makeCard(n), emptyState));
+            }
+        }
+
+        function makeCard(node) {
+            const color = CAT_COLORS[node.category] || '#aaa';
+            const card = document.createElement('div');
+            card.className = 'node-card';
+
+            // I/O summary
+            const maxTags = 5;
+            const inputs = (node.inputs || []).slice(0, maxTags);
+            const outputs = (node.outputs || []).slice(0, maxTags);
+            const widgets = (node.widgets || []).slice(0, 3);
+
+            const tagsHtml = row => row.map(io => 
+                `<span class="io-tag ${io._role}" title="${io.desc}">${io.name}</span>`
+            ).join('');
+
+            const ioRows = [
+                inputs.length ? `<div class="io-label">Inputs</div><div class="io-grid">${inputs.map(i => ({...i, _role:'input'})).map(makeTag).join('')}</div>` : '',
+                outputs.length ? `<div class="io-label" style="margin-top:8px">Outputs</div><div class="io-grid">${outputs.map(o => ({...o, _role:'output'})).map(makeTag).join('')}</div>` : '',
+                widgets.length ? `<div class="io-label" style="margin-top:8px">Widgets</div><div class="io-grid">${widgets.map(w => ({...w, _role:'widget'})).map(makeTag).join('')}</div>` : ''
+            ].filter(Boolean).join('');
+
+            const hasImage = !!node.image;
+            const imgLabel = hasImage ? '📷 View Screenshot' : '📷 No Screenshot Yet';
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="card-title">${node.name}</div>
+                    <div class="card-cat" style="background:${color}22; color:${color}">${node.category}</div>
+                </div>
+                <div class="card-desc">${node.description}</div>
+                ${ioRows ? `<div class="io-section">${ioRows}</div>` : ''}
+                <div class="card-footer">
+                    <button class="img-stub-btn ${hasImage ? 'has-image' : ''}" onclick="openLightbox('${node.id}')">
+                        ${imgLabel}
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+
+        function makeTag(io) {
+            return `<span class="io-tag ${io._role}" title="${io.desc}">${io.name}<span style="color:var(--text-dim);font-size:10px"> ${io.type}</span></span>`;
+        }
+
+        function openLightbox(nodeId) {
+            const node = allNodes.find(n => n.id === nodeId);
+            if (!node) return;
+
+            document.getElementById('lightbox-title').textContent = node.name;
+            const imgEl = document.getElementById('lightbox-img');
+            const iconEl = document.getElementById('lightbox-icon');
+            const stubMsg = document.getElementById('lightbox-stub-msg');
+            const stubPath = document.getElementById('lightbox-stub-path');
+
+            if (node.image) {
+                imgEl.src = node.image;
+                imgEl.style.display = 'block';
+                iconEl.style.display = 'none';
+                stubMsg.style.display = 'none';
+                stubPath.style.display = 'none';
+            } else {
+                imgEl.style.display = 'none';
+                iconEl.style.display = 'block';
+                stubMsg.style.display = 'block';
+                stubPath.style.display = 'block';
+                stubMsg.textContent = 'No screenshot yet — add one to node_data.json';
+                stubPath.textContent = `"image": "/shima/Images/nodes/${nodeId}.png"`;
+            }
+
+            document.getElementById('lightbox').classList.add('open');
+        }
+
+        function closeLightbox(e) {
+            if (e.target === document.getElementById('lightbox')) {
+                document.getElementById('lightbox').classList.remove('open');
+            }
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('open');
+        });
+
+        init();
+    </script>
+</body>
+</html>
