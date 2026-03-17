@@ -67,7 +67,7 @@ from .utils.settings_utils import ShimaSettings
 # Extension manifest
 MANIFEST = {
     "name": "Shima",
-    "version": (2, 0, 0),
+    "version": (2, 0, 2),
     "author": "Aegisflow",
     "project": "https://shima.wf",
     "description": "Composable workflow islands with marketplace integration",
