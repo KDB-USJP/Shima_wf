@@ -31,11 +31,13 @@ class ShimaBoundingBoxPicker:
                 "crop_w": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001}),
                 "crop_h": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001}),
                 "aspect_ratio": (["Free", "Custom", "1:1 Square", "4:3 Standard", "16:9 Widescreen", "21:9 Ultrawide", "3:2 Photo", "IP-Adapter (224x224)"],),
+                "aspect_ratio": (["Free", "Custom", "1:1 Square", "4:3 Standard", "16:9 Widescreen", "21:9 Ultrawide", "3:2 Photo", "IP-Adapter (224x224)"],),
                 "orientation": (["landscape", "portrait", "auto"], {"default": "landscape"}),
             },
             "optional": {
                 "image": ("IMAGE", {"tooltip": "If connected, overrides the internal image_path loader."}),
-                "shima.commonparams": ("DICT", {"tooltip": "If connected, frontend can read target width/height for custom ratio."})
+                "shima.commonparams": ("DICT", {"tooltip": "If connected, frontend can read target width/height for custom ratio."}),
+                "active": ("BOOLEAN", {"default": True, "forceInput": True}),
             }
         }
 
@@ -69,7 +71,7 @@ class ShimaBoundingBoxPicker:
         image = torch.from_numpy(image)[None,]
         return image
 
-    def crop_image(self, image_path, crop_x, crop_y, crop_w, crop_h, aspect_ratio, image=None, **kwargs):
+    def crop_image(self, image_path, crop_x, crop_y, crop_w, crop_h, aspect_ratio, active=True, image=None, **kwargs):
         # 1. Resolve Input Tensor
         if image is not None:
             input_tensor = image
@@ -77,11 +79,23 @@ class ShimaBoundingBoxPicker:
             if not image_path:
                 raise ValueError("Shima.BoundingBoxPicker requires an 'image' input or a selected 'image_path'.")
             input_tensor = self.load_image_from_path(image_path)
-            
+
         # 2. Extract Dimensions
         # Input format is [B, H, W, C]
         b, img_h, img_w, c = input_tensor.shape
-        
+
+        # 2.5 Handle Bypass (Active check)
+        # We handle truthiness for 0/1 support
+        if not active or (isinstance(active, (int, float)) and active == 0):
+            # Return original image and a full mask
+            full_mask = torch.ones((b, img_h, img_w), dtype=torch.float32, device=input_tensor.device)
+            full_crop_data = {
+                "x": 0, "y": 0, "width": img_w, "height": img_h,
+                "norm_x": 0.0, "norm_y": 0.0, "norm_w": 1.0, "norm_h": 1.0,
+                "original_width": img_w, "original_height": img_h
+            }
+            return (input_tensor, full_mask, full_crop_data)
+            
         # 3. Calculate absolute pixel coordinates from normalized normalized values
         # Clamping to ensure we don't go out of bounds due to floating point rounding
         start_x = max(0, int(crop_x * img_w))

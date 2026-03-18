@@ -223,6 +223,73 @@ function spawnHTMLDialog(titleText, initialValue, isNumber, isMultiline, isFileU
     };
 }
 
+/**
+ * Robustly inject "Pin to Control Panel" into all node context menus
+ */
+function ensureOriginal(proto, name) {
+    const key = `__shima_original_cp_${name}`;
+    if (!proto[key]) {
+        proto[key] = proto[name];
+    }
+    return proto[key];
+}
+
+const originalGetNodeMenuOptions = ensureOriginal(LGraphCanvas.prototype, "getNodeMenuOptions");
+LGraphCanvas.prototype.getNodeMenuOptions = function (node) {
+    let options = originalGetNodeMenuOptions.apply(this, arguments);
+    if (!options) return options;
+
+    if (node.widgets && node.widgets.length > 0) {
+        const pinOptions = [];
+        for (let i = 0; i < node.widgets.length; i++) {
+            const w = node.widgets[i];
+            if (!w || !w.name) continue;
+            
+            pinOptions.push({
+                content: `📌 Pin '${w.name}'`,
+                callback: () => {
+                    const isPinned = window.ShimaPinnedWidgets.some(
+                        p => p.nodeId === node.id && p.widgetName === w.name
+                    );
+
+                    if (!isPinned) {
+                        window.ShimaPinnedWidgets.push({
+                            nodeId: node.id,
+                            widgetName: w.name,
+                            widgetIndex: i,
+                            type: w.type,
+                            label: `${node.title || node.comfyClass || node.type} | ${w.name}`
+                        });
+
+                        const panels = app.graph._nodes.filter(n => n.comfyClass === "Shima.ControlPanel");
+                        panels.forEach(p => {
+                            p.size[1] += 34 * (p.properties?.scale || 1.0);
+                            if (p.onResize) p.onResize(p.size);
+                            p.setDirtyCanvas(true, true);
+                        });
+
+                        app.canvas.setDirty(true, true);
+                    }
+                }
+            });
+        }
+
+        if (pinOptions.length > 0) {
+            options.push(null);
+            options.push({
+                content: "⌨️ Shima Control Panel",
+                has_submenu: true,
+                callback: () => { },
+                submenu: {
+                    options: pinOptions
+                }
+            });
+        }
+    }
+
+    return options;
+};
+
 app.registerExtension({
     name: "Shima.ControlPanel",
 
@@ -230,57 +297,6 @@ app.registerExtension({
         if (nodeData.name === "Shima.ControlPanel") {
             nodeType.title_mode = LiteGraph.NO_TITLE;
             nodeType.collapsable = false;
-        }
-    },
-
-    /**
-     * Modern hook for adding "Pin" options to all node context menus
-     */
-    getExtraMenuOptions(node, options) {
-        if (node.widgets && node.widgets.length > 0) {
-            const pinOptions = [];
-            for (let i = 0; i < node.widgets.length; i++) {
-                const w = node.widgets[i];
-                pinOptions.push({
-                    content: `📌 Pin '${w.name || w.type}'`,
-                    callback: () => {
-                        const isPinned = window.ShimaPinnedWidgets.some(
-                            p => p.nodeId === node.id && p.widgetName === w.name
-                        );
-
-                        if (!isPinned) {
-                            window.ShimaPinnedWidgets.push({
-                                nodeId: node.id,
-                                widgetName: w.name || w.type,
-                                widgetIndex: i,
-                                type: w.type,
-                                label: `${node.title || node.type} | ${w.name}` // Pipe format requested
-                            });
-
-                            const panels = app.graph._nodes.filter(n => n.comfyClass === "Shima.ControlPanel");
-                            panels.forEach(p => {
-                                p.size[1] += 34 * (p.properties?.scale || 1.0); // Expand for new row
-                                if (p.onResize) p.onResize(p.size);
-                                p.setDirtyCanvas(true, true);
-                            });
-
-                            app.canvas.setDirty(true, true);
-                        }
-                    }
-                });
-            }
-
-            if (pinOptions.length > 0) {
-                options.push(null);
-                options.push({
-                    content: "Shima Control Panel",
-                    has_submenu: true,
-                    callback: () => { },
-                    submenu: {
-                        options: pinOptions
-                    }
-                });
-            }
         }
     },
 

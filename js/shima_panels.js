@@ -252,7 +252,11 @@ app.registerExtension({
                 this.properties.panel_title = defaultTitle;
 
                 // Sync equivalent Use Everywhere broadcasting defaults for these panel equivalents
+                // ONLY on initial placement (not during workflow load) to preserve user overrides
                 setTimeout(() => {
+                    if (app.loadingGraph) return;
+                    if (this.properties.shima_ue_initialized) return;
+
                     if (!this.properties) this.properties = {};
                     this.properties.ue_properties = this.properties.ue_properties || {};
                     this.properties["ue_convert"] = true;
@@ -265,17 +269,20 @@ app.registerExtension({
                         this.properties.ue_properties.output_not_broadcasting = { "latent": true, "s33d": true, "width": true, "height": true };
                         this.properties.ue_properties.input_regex = "latentmaker.bndl";
                     } else if (nodeData.name === "Shima.PanelMasterPrompt") {
+                        // Master Prompt BNDL inputs are allowed by default (not in input_ue_unconnectable)
                         this.properties.ue_properties.output_not_broadcasting = { "positive": true, "negative": true, "CLIP_L_ONLY": true, "CLIP_G_ONLY": true, "T5_ONLY": true, "pos_string": true, "neg_string": true };
                         this.properties.ue_properties.input_regex = "masterprompt.bndl";
                     } else if (nodeData.name === "Shima.PanelSampler") {
                         this.properties.ue_properties.output_not_broadcasting = { "image": true, "latent": true, "s33d_used": true };
                         this.properties.ue_properties.input_regex = "shimasampler.bndl";
                     } else if (nodeData.name === "Shima.PanelControlAgent") {
-                        // Shield image input from UE auto-connections to prevent recursion
+                        // Shield image input from UE auto-connections ONLY on first placement
                         this.properties.ue_properties.input_ue_unconnectable = { "image": true };
                         this.properties.ue_properties.output_not_broadcasting = { "shima.controlbus": true, "processed_image": true };
                         this.properties.ue_properties.input_regex = "shima.controlbus";
                     }
+                    
+                    this.properties.shima_ue_initialized = true;
                     if (app.graph) this.setDirtyCanvas(true, true);
                 }, 100);
                 this.bgcolor = "transparent";
