@@ -33,3 +33,4 @@ where = ["."]
 [tool.comfy]
 PublisherId = "kdb"
 DisplayName = "Shima"
+# Re-triggering publication Action with correct PublisherId casing
