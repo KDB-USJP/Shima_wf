@@ -93,6 +93,10 @@ app.registerExtension({
 
             function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
 
+            // Z-Order handled by global custodian
+
+            if (node.properties.always_on_top === undefined) node.properties.always_on_top = true;
+
             // Omnijog specific state
             node._shuttleAmount = 0; // -1.0 to 1.0
             node._internalVals = { "0": null, "1": null, "2": null, "3": null };
@@ -740,6 +744,10 @@ app.registerExtension({
                         const iCols = mkInput("Colors (Comma Sep hex)", "colors", "text");
                         const iScale = mkInput("Global Scale", "scale", "number", "0.1");
 
+                        const iAOT = mkInput("Stay Always On Top", "always_on_top", "checkbox");
+                        iAOT.checked = node.properties.always_on_top !== false;
+                        iAOT.style.width = "20px"; // Adjust for checkbox
+
                         const footer = document.createElement("div");
                         footer.style.cssText = "display:flex; justify-content:flex-end; gap:10px; margin-top:20px;";
                         const btnOk = document.createElement("button");
@@ -775,6 +783,9 @@ app.registerExtension({
                             });
                             setW("colors", iCols.value);
                             setW("scale", iScale.value, true);
+                            
+                            node.properties.always_on_top = iAOT.checked;
+                            if (node.properties.always_on_top) window.Shima.moveAOTNodesToFront();
 
                             // Recalculate dimensions immediately
                             const sc = parseFloat(iScale.value) || 1.0;

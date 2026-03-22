@@ -66,6 +66,10 @@ app.registerExtension({
 
             function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
 
+            // Z-Order handled by global custodian
+
+            if (node.properties.always_on_top === undefined) node.properties.always_on_top = true;
+
             node.onDrawBackground = function (ctx) {
                 if (this.flags.collapsed) return;
 
@@ -369,6 +373,9 @@ app.registerExtension({
                         const iReadColor = mkInput("Readout Color Hex", "readout_color", "text");
                         const iScale = mkInput("Scale", "scale", "number", "0.1");
                         const iLedColor = mkInput("LED Arc Color Hex", "led_color", "text");
+                        const iAOT = mkInput("Stay Always On Top", "always_on_top", "checkbox");
+                        if (node.properties.always_on_top === undefined) iAOT.checked = true;
+                        else iAOT.checked = node.properties.always_on_top;
 
                         const footer = document.createElement("div");
                         footer.style.cssText = "display:flex; justify-content:flex-end; gap:10px; margin-top:20px;";
@@ -387,6 +394,9 @@ app.registerExtension({
                             setW("readout_color", iReadColor.value);
                             setW("scale", iScale.value, true);
                             setW("led_color", iLedColor.value);
+
+                            node.properties.always_on_top = iAOT.checked;
+                            if (node.properties.always_on_top) window.Shima.moveAOTNodesToFront();
 
                             // Recalculate dimensions immediately
                             const sc = parseFloat(iScale.value) || 1.0;

@@ -231,5 +231,5 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Shima.ControlAgent": "Shima ControlNet Agent",
-    "Shima.PanelControlAgent": "Shima Panel Control Agent",
+    "Shima.PanelControlAgent": "Shima Panel ControlNet Agent",
 }

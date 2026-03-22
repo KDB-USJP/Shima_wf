@@ -204,13 +204,12 @@ app.registerExtension({
             node._noodmanImg = null;
             node._noodmanImgSrc = "";
 
-            const getScale = () => node.widgets?.find(w => w.name === "scale")?.value || 1.0;
-
-            node.size = [80 * getScale(), 80 * getScale()];
+            node.size = [80, 80];
+            node.min_width = 20;
+            node.min_height = 20;
 
             node.computeSize = function () {
-                const sc = getScale();
-                return [80 * sc, 80 * sc];
+                return [20, 20];
             };
 
             const centerPorts = () => {
@@ -246,9 +245,15 @@ app.registerExtension({
                 cleanupUI();
             };
 
-            node.onResize = function () {
+            node.onResize = function (size) {
+                // Enforce 1:1 proportional resize
+                const side = Math.max(20, size[0], size[1]);
+                size[0] = side;
+                size[1] = side;
                 centerPorts();
             };
+
+            // Z-Order handled by global custodian
 
             node.onExecuted = function (message) {
                 if (message && message.state !== undefined) {
@@ -334,14 +339,20 @@ app.registerExtension({
                 const sy = frame.row * sh;
 
                 ctx.save();
-                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+                // Maintain 1:1 aspect ratio for the mascot drawing
+                // We use the smaller dimension to ensure it fits without stretching
+                const side = Math.min(w, h);
+                const ox = (w - side) / 2;
+                const oy = (h - side) / 2;
+                ctx.drawImage(img, sx, sy, sw, sh, ox, oy, side, side);
                 ctx.restore();
-
                 // Keep redrawing if animating
                 if (fps > 0 && frames.length > 1 && !this._noodmanStopped) {
                     this.setDirtyCanvas(true, true);
                 }
             };
+
+            if (node.properties.always_on_top === undefined) node.properties.always_on_top = true;
 
             node.onDblClick = function () {
                 showNoodmanModal(this);
@@ -575,14 +586,13 @@ function showNoodmanModal(node) {
     watchInput.style.cssText = "width:100%; padding:10px; background:#222; color:white; border:1px solid #444; box-sizing:border-box; font-family:monospace;";
     watchRow.appendChild(watchInput);
 
-    // Scale
-    const scaleRow = createRow("Display Scale");
-    const scaleInput = document.createElement("input");
-    scaleInput.type = "number"; scaleInput.step = "0.1"; scaleInput.min = "0.1"; scaleInput.max = "10";
-    const scaleW = node.widgets?.find(w => w.name === "scale");
-    scaleInput.value = scaleW?.value || 1.0;
-    scaleInput.style.cssText = "width:100%; padding:10px; background:#222; color:white; border:1px solid #444; box-sizing:border-box;";
-    scaleRow.appendChild(scaleInput);
+    // Always On Top
+    const aotRow = createRow("Stay Always On Top");
+    const aotCheck = document.createElement("input");
+    aotCheck.type = "checkbox";
+    aotCheck.checked = node.properties.always_on_top !== false;
+    aotCheck.style.cssText = "width:18px; height:18px; accent-color:#0af; cursor:pointer;";
+    aotRow.appendChild(aotCheck);
 
     // Footer
     const footer = document.createElement("div");
@@ -608,11 +618,8 @@ function showNoodmanModal(node) {
         if (fpsW) fpsW.value = parseInt(fpsInput.value) || 8;
         if (stopW) stopW.value = stopCheck.checked;
         if (watchW) watchW.value = watchInput.value.trim();
-        if (scaleW) {
-            const sc = parseFloat(scaleInput.value) || 1.0;
-            scaleW.value = sc;
-            node.size = [80 * sc, 80 * sc];
-        }
+        node.properties.always_on_top = aotCheck.checked;
+        if (node.properties.always_on_top) window.Shima.moveAOTNodesToFront();
 
         node._noodmanFrameIdx = 0;
         node._noodmanLastTick = 0;

@@ -247,7 +247,7 @@ app.registerExtension({
                 if (nodeData.name === "Shima.PanelModelCitizen") { defaultTitle = "Model Citizen"; defaultH = 285; }
                 else if (nodeData.name === "Shima.PanelLatentMaker") { defaultTitle = "Latent Maker"; defaultH = 215; }
                 else if (nodeData.name === "Shima.PanelMasterPrompt") { defaultTitle = "Master Prompt"; defaultH = 255; }
-                else if (nodeData.name === "Shima.PanelControlAgent") { defaultTitle = "Control Agent"; defaultH = 310; }
+                else if (nodeData.name === "Shima.PanelControlAgent") { defaultTitle = "ControlNet Agent"; defaultH = 310; }
 
                 this.properties.panel_title = defaultTitle;
 

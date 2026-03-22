@@ -61,16 +61,10 @@ app.registerExtension({
                 return [maxW + 40, Math.max(30, lines.length * lineHeight + 20)];
             };
 
+            // Z-Order handled by global custodian
+
             node.onDrawBackground = function (ctx) {
                 if (this.flags.collapsed || this.properties.hidden) return;
-
-                // Always on Top Logic
-                const nodes = app.graph._nodes;
-                const idx = nodes.indexOf(this);
-                if (idx !== -1 && idx < nodes.length - 1) {
-                    nodes.splice(idx, 1);
-                    nodes.push(this);
-                }
 
                 const textWidget = this.widgets?.find(w => w.name === "text");
                 const text = textWidget?.value || "";
@@ -206,6 +200,20 @@ function showDymoModal(node) {
     sjRow.appendChild(sBox); sjRow.appendChild(jBox);
     panel.appendChild(sjRow);
 
+    // Always On Top
+    const aotRow = document.createElement("div");
+    aotRow.style.cssText = "margin-bottom: 20px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;";
+    aotRow.innerHTML = `
+        <input type="checkbox" id="aot-check" ${node.properties.always_on_top !== false ? "checked" : ""} style="cursor: pointer;">
+        <span style="font-size: 13px; color: #aaa;">Stay Always On Top</span>
+    `;
+    const aotCheck = aotRow.querySelector("input");
+    aotRow.onclick = (e) => {
+        if (e.target.tagName === "INPUT") return;
+        aotCheck.checked = !aotCheck.checked;
+    };
+    panel.appendChild(aotRow);
+
     const footer = document.createElement("div");
     footer.style.cssText = "display:flex; justify-content:flex-end; gap:10px; margin-top:20px;";
 
@@ -218,6 +226,8 @@ function showDymoModal(node) {
         if (sizeW) sizeW.value = parseInt(sIn.value) || 18;
         if (jitterW) jitterW.value = jIn.value === "true";
         node.properties.font = fIn.value || "Courier, 'Courier New', monospace";
+        node.properties.always_on_top = aotCheck.checked;
+        if (node.properties.always_on_top) window.Shima.moveAOTNodesToFront();
         node.setSize(node.computeSize());
         node.setDirtyCanvas(true);
         cleanup();

@@ -75,6 +75,8 @@ app.registerExtension({
                 this.setDirtyCanvas(true);
             };
 
+            // Z-Order handled by global custodian
+
             node.onExecuted = function (message) {
                 if (message && message.state !== undefined) {
                     this.updateState(message.state[0]);
@@ -179,6 +181,8 @@ app.registerExtension({
                     callback: () => showLightModal(this)
                 });
             };
+
+            if (node.properties.always_on_top === undefined) node.properties.always_on_top = true;
         }
     }
 });
@@ -253,6 +257,20 @@ function showLightModal(node) {
     vInput.style.cssText = "width:100%; padding:10px; background:#222; color:white; border: 1px solid #444; box-sizing:border-box;";
     vRow.appendChild(vInput);
 
+    // Always On Top
+    const aotRow = document.createElement("div");
+    aotRow.style.cssText = "margin-top: 15px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;";
+    aotRow.innerHTML = `
+        <input type="checkbox" id="aot-check" ${node.properties.always_on_top !== false ? "checked" : ""} style="cursor: pointer;">
+        <span style="font-size: 13px; color: #ccc;">Stay Always On Top</span>
+    `;
+    const aotCheck = aotRow.querySelector("input");
+    aotRow.onclick = (e) => {
+        if (e.target.tagName === "INPUT") return;
+        aotCheck.checked = !aotCheck.checked;
+    };
+    panel.appendChild(aotRow);
+
     const footer = document.createElement("div");
     footer.style.cssText = "display:flex; justify-content:flex-end; gap:10px; margin-top:30px;";
 
@@ -263,6 +281,10 @@ function showLightModal(node) {
         if (baseW) baseW.value = colorInput.value;
         if (triggerW) triggerW.value = tSel.value;
         if (compW) compW.value = vInput.value;
+        node.properties.always_on_top = aotCheck.checked;
+        if (node.properties.always_on_top) {
+            window.Shima.moveAOTNodesToFront();
+        }
         if (scaleW) {
             const sc = parseFloat(scaleInput.value) || 1.0;
             scaleW.value = sc;

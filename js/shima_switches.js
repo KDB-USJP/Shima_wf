@@ -192,6 +192,8 @@ app.registerExtension({
                 });
             };
 
+            // Z-Order handled by global custodian
+
             node.updateState = function (state) {
                 const w = getW(isBreaker ? "breaker_state" : "switch_state");
                 if (w) w.value = state;
@@ -202,6 +204,8 @@ app.registerExtension({
                 }
                 this.setDirtyCanvas(true, true);
             };
+
+            if (node.properties.always_on_top === undefined) node.properties.always_on_top = true;
 
             // --- Rendering ---
             node.onDrawForeground = function (ctx) {
@@ -385,6 +389,24 @@ function showSwitchModal(node) {
             node.size = [100 * sc, 180 * sc]; // Reset base dimensions
         });
     }
+
+    // Always On Top
+    const aotRow = document.createElement("div");
+    aotRow.style.cssText = "margin-top: 15px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;";
+    aotRow.innerHTML = `
+        <input type="checkbox" id="aot-check" ${node.properties.always_on_top !== false ? "checked" : ""} style="cursor: pointer;">
+        <span style="font-size: 13px; color: #ccc;">Stay Always On Top</span>
+    `;
+    const aotCheck = aotRow.querySelector("input");
+    aotRow.onclick = (e) => {
+        if (e.target.tagName === "INPUT") return;
+        aotCheck.checked = !aotCheck.checked;
+    };
+    panel.appendChild(aotRow);
+    controls.push(() => {
+        node.properties.always_on_top = aotCheck.checked;
+        if (node.properties.always_on_top) window.Shima.moveAOTNodesToFront();
+    });
 
     const footer = document.createElement("div");
     footer.style.cssText = "display:flex; justify-content:flex-end; gap:10px; margin-top:30px;";

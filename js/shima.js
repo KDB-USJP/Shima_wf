@@ -4300,11 +4300,10 @@ function setupStickerWidgets(node) {
 
     // Picker Dialog
     function showPicker() {
-        // Get current values
-        const wOpacity = node.widgets.find(w => w.name === "opacity");
-        const wScale = node.widgets.find(w => w.name === "scale");
+        // Get current values safely
+        const wOpacity = node.widgets?.find(w => w.name === "opacity");
         const currentOpacity = wOpacity ? wOpacity.value : 1.0;
-        const currentScale = wScale ? wScale.value : 1.0;
+        const currentAOT = node.properties.always_on_top !== false; // Default true
 
         const dialog = document.createElement("dialog");
         dialog.style.cssText = `
@@ -4314,7 +4313,7 @@ function setupStickerWidgets(node) {
             background: #222;
             color: #eee;
             width: 320px;
-            max-height: 500px;
+            max-height: 550px;
             display: flex;
             flex-direction: column;
             z-index: 10000;
@@ -4353,7 +4352,7 @@ function setupStickerWidgets(node) {
                     item.onmouseover = () => item.style.background = "#333";
                     item.onmouseout = () => item.style.background = "transparent";
                     item.onclick = () => {
-                        const wLogo = node.widgets.find(w => w.name === "logo");
+                        const wLogo = node.widgets?.find(w => w.name === "logo");
                         if (wLogo) {
                             wLogo.value = name;
                             if (wLogo.callback) wLogo.callback(name);
@@ -4380,16 +4379,35 @@ function setupStickerWidgets(node) {
         const content = document.createElement("div");
         content.style.cssText = "padding: 15px; overflow-y: auto; flex: 1;";
 
-        // Sliders
-        const opacitySlider = createSlider("Opacity", 0, 1, 0.1, currentOpacity, (v) => {
-            if (wOpacity) { wOpacity.value = v; if (wOpacity.callback) wOpacity.callback(v); }
-        });
-        const scaleSlider = createSlider("Scale", 0.1, 5, 0.1, currentScale, (v) => {
-            if (wScale) { wScale.value = v; if (wScale.callback) wScale.callback(v); }
-        });
+        // Always On Top Checkbox
+        const aotRow = document.createElement("div");
+        aotRow.style.cssText = "margin-bottom: 15px; display: flex; align-items: center; gap: 10px; user-select: none; cursor: pointer;";
+        aotRow.innerHTML = `
+            <input type="checkbox" id="shima-aot-check" ${currentAOT ? "checked" : ""} style="cursor: pointer;">
+            <label for="shima-aot-check" style="font-size: 13px; color: #ccc; cursor: pointer;">Stay Always On Top</label>
+        `;
+        aotRow.onclick = (e) => {
+            if (e.target.tagName === "INPUT") return;
+            const cb = aotRow.querySelector("input");
+            cb.checked = !cb.checked;
+            cb.dispatchEvent(new Event("change"));
+        };
+        aotRow.querySelector("input").onchange = (e) => {
+            node.properties.always_on_top = e.target.checked;
+            if (node.properties.always_on_top && window.Shima.moveAOTNodesToFront) {
+                window.Shima.moveAOTNodesToFront();
+            }
+        };
+        content.appendChild(aotRow);
 
+        // Opacity Slider
+        const opacitySlider = createSlider("Opacity", 0, 1, 0.1, currentOpacity, (v) => {
+            if (wOpacity) { 
+                wOpacity.value = v; 
+                if (wOpacity.callback) wOpacity.callback(v); 
+            }
+        });
         content.appendChild(opacitySlider);
-        content.appendChild(scaleSlider);
 
         // Logo List Header
         const listHeader = document.createElement("div");
@@ -4412,12 +4430,11 @@ function setupStickerWidgets(node) {
                 item.onmouseout = () => item.style.background = "transparent";
 
                 item.onclick = () => {
-                    const wLogo = node.widgets.find(w => w.name === "logo");
+                    const wLogo = node.widgets?.find(w => w.name === "logo");
                     if (wLogo) {
                         wLogo.value = name;
                         if (wLogo.callback) wLogo.callback(name);
                     }
-                    // Keep open for slider adjustments
                 };
                 list.appendChild(item);
             });
@@ -4430,11 +4447,17 @@ function setupStickerWidgets(node) {
         dialog.addEventListener('close', () => dialog.remove());
     }
 
+    // --- Z-Order Management ---
+    // Handled by global custodian in shima.js
 
-
-    // Bind Double Click
-    node.onDblClick = function () {
-        showPicker();
+    const cleanupUI = () => {
+        if (node.widgets) {
+            node.widgets.forEach(w => {
+                w.type = "hidden";
+                w.computeSize = () => [0, -4];
+                w.hidden = true;
+            });
+        }
     };
 
     function update() {
@@ -4443,89 +4466,61 @@ function setupStickerWidgets(node) {
         node.bgcolor = "transparent";
         node.boxcolor = "transparent";
 
-        // Widgets: logo, opacity, scale
-        const wLogo = node.widgets.find(w => w.name === "logo");
-        const wOpacity = node.widgets.find(w => w.name === "opacity");
-        const wScale = node.widgets.find(w => w.name === "scale");
+        cleanupUI();
 
-        // Hide widgets!
-        [wLogo, wOpacity, wScale].forEach(w => {
-            if (w) {
-                w.type = "hidden";
-                w.computeSize = () => [0, 0];
-                w.hidden = true;
-            }
-        });
-
+        const wLogo = node.widgets?.find(w => w.name === "logo");
         const logoName = wLogo?.value;
-        const scale = wScale?.value ?? 1.0;
 
         if (logoName) {
-            // New route: /shima/sticker/image/{subdir}/{filename}
-            // logoName is "PNG/foo.png" or "SVG/bar.svg"
             const url = `/shima/sticker/image/${logoName}`;
-            // Preload image
             if (!node.stickerImage.src.includes(url)) {
                 node.stickerImage.src = url;
                 node.stickerImage.onload = () => {
                     node.setDirtyCanvas(true, true);
+                    
+                    const img = node.stickerImage;
+                    const padding = 10;
 
-                    // Only resize if user hasn't manually resized
-                    if (!node.properties?.userResized) {
-                        const img = node.stickerImage;
-                        const padding = 20;
-                        const w = img.width * scale;
-                        const h = img.height * scale;
+                    const currentAspect = node.size[0] / node.size[1];
+                    const targetAspect = img.width / img.height;
+                    const aspectMismatch = Math.abs(currentAspect - targetAspect) > 0.05;
+                    
+                    // Force aspect snap for new nodes (userResized not set) or if it's currently square 80x80
+                    const isDefaultSize = Math.abs(node.size[0] - 80) < 5 && Math.abs(node.size[1] - 80) < 5;
 
+                    if ((!node.properties?.userResized || isDefaultSize) && aspectMismatch) {
                         node._isSystemResizing = true;
-                        node.setSize([w + padding, h + padding]);
+                        node.setSize([img.width + padding, img.height + padding]);
                         node._isSystemResizing = false;
                     }
-                }
-            } else if (node.stickerImage.complete) {
-                // Ensure size matches scale if already loaded
-                if (!node.properties?.userResized) {
-                    const img = node.stickerImage;
-                    const padding = 20;
-                    const w = img.width * scale;
-                    const h = img.height * scale;
-
-                    node._isSystemResizing = true;
-                    node.setSize([w + padding, h + padding]);
-                    node._isSystemResizing = false;
                 }
             }
         }
     }
 
-    // Initialize properties
-    if (!node.properties) node.properties = {};
-
-    // Track manual resizing
-    node.onResize = function (size) {
-        if (!this._isSystemResizing) {
-            this.properties.userResized = true;
-        }
-    }
-
-    // prevent default title/background drawing
-    node.onDrawForeground = function (ctx) {
-        if (this.flags.collapsed) return false; // Let it draw if collapsed (or handle differently)
-        return true; // Return true to prevent default title/body drawing? 
-        // Actually LiteGraph doesn't skip body with this return value usually, 
-        // but we can try setting bgcolor/color to Fully Transparent
-    }
-
-    // Aggressive overrides removed
-
-    // Force empty title
-    node.getTitle = function () { return ""; }
+    // --- Standard Node Setup ---
+    node.onDblClick = function () {
+        showPicker();
+    };
+    node.getExtraMenuOptions = function (_, options) {
+        options.push({
+            content: "Shima: Configure Sticker...",
+            callback: () => showPicker()
+        });
+    };
+    node.onConnectionsChange = () => cleanupUI();
+    node.getTitle = () => "";
     node.title = "";
+    node.min_width = 20;
+    node.min_height = 20;
+    node.computeSize = function () {
+        return [20, 20];
+    };
 
     // Hook updates
-    const widgets = ["logo", "opacity", "scale"];
-    widgets.forEach(name => {
-        const w = node.widgets.find(x => x.name === name);
+    const hookWidgets = ["logo", "opacity"];
+    hookWidgets.forEach(name => {
+        const w = node.widgets?.find(x => x.name === name);
         if (w) {
             const cb = w.callback;
             w.callback = function (v) {
@@ -4536,15 +4531,40 @@ function setupStickerWidgets(node) {
         }
     });
 
-    // 2. Override Draw Background (Canvas Render)
+    // Track manual resizing
+    node.onResize = function (size) {
+        if (!this._isSystemResizing) {
+            this.properties.userResized = true;
+            
+            // Enforce proportional resizing based on image aspect ratio
+            if (this.stickerImage && this.stickerImage.width) {
+                const aspect = this.stickerImage.width / this.stickerImage.height;
+                const padding = 10;
+                const wContained = size[0] - padding;
+                const hContained = size[1] - padding;
+                
+                // We want to fit within the new size while maintaining aspect ratio
+                const newDrawW = wContained;
+                const newDrawH = newDrawW / aspect;
+                
+                size[0] = newDrawW + padding;
+                size[1] = newDrawH + padding;
+            }
+        }
+    }
+
+    // prevent default title/background drawing
+    node.onDrawForeground = function (ctx) {
+        return false; 
+    }
+
+    // Initialize properties
     node.onDrawBackground = function (ctx) {
         if (!this.stickerImage || !this.stickerImage.src) return;
 
         // Get properties
         const wOpacity = this.widgets?.find(w => w.name === "opacity");
-        const wScale = this.widgets?.find(w => w.name === "scale");
         const opacity = wOpacity ? wOpacity.value : 1.0;
-        const scale = wScale ? wScale.value : 1.0;
 
         ctx.save();
         ctx.globalAlpha = opacity;
@@ -4553,17 +4573,23 @@ function setupStickerWidgets(node) {
         const img = this.stickerImage;
         if (img.width && img.height) {
             const aspect = img.width / img.height;
-            // Base size on node width
-            let drawW = this.size[0] * scale;
-            let drawH = (this.size[0] / aspect) * scale;
+            const padding = 10;
+            
+            // The node size ALREADY includes the scale * img.width/height + padding.
+            // We want to fill the node's available area.
+            const wAvailable = this.size[0] - padding;
+            const hAvailable = this.size[1] - padding;
 
-            // Center it relative to node center
+            // Use the actual contained image size based on the node's current dimensions
+            const drawW = wAvailable;
+            const drawH = hAvailable;
+
             const x = (this.size[0] - drawW) / 2;
             let y = (this.size[1] - drawH) / 2;
 
-            // Offset up to account for title bar and center in WHOLE node
-            // LiteGraph.NODE_TITLE_HEIGHT is usually 30, so offset by 15
-            y -= 15;
+            // Optional offset for title bar if needed (stickers have empty title but still reserve space?)
+            // If they have no header, y-15 might not be needed.
+            y -= 0; 
 
             ctx.drawImage(img, x, y, drawW, drawH);
         }
@@ -4572,5 +4598,58 @@ function setupStickerWidgets(node) {
         return true; // Overrides litegraph default box rendering entirely
     };
 
+    // Initialize properties
+    if (!node.properties) node.properties = {};
+    if (node.properties.always_on_top === undefined) node.properties.always_on_top = true;
+    setTimeout(() => {
+        if (window.Shima && window.Shima.moveAOTNodesToFront) {
+            window.Shima.moveAOTNodesToFront();
+        }
+    }, 100);
+
     setTimeout(update, 100);
 }
+
+// ============================================================================
+// Global Z-Order Custodian
+// ============================================================================
+// Ensures nodes with properties.always_on_top stay at the end of the graph._nodes 
+// array (rendered on top) whenever selection state changes.
+
+window.Shima.moveAOTNodesToFront = () => {
+    if (!app.graph || !app.graph._nodes) return;
+    const nodes = app.graph._nodes;
+    // Iterate backwards to maintain relative order of AOT nodes while moving them to the end
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const n = nodes[i];
+        if (n && n.properties && n.properties.always_on_top === true) {
+            nodes.splice(i, 1);
+            nodes.push(n);
+        }
+    }
+};
+
+const moveAOTNodesToFront = window.Shima.moveAOTNodesToFront;
+
+// Hook into LiteGraph selection/deselection events
+const orgSelectNode = LGraphCanvas.prototype.selectNode;
+LGraphCanvas.prototype.selectNode = function (node, append) {
+    const res = orgSelectNode.apply(this, arguments);
+    moveAOTNodesToFront();
+    return res;
+};
+
+const orgDeselectNode = LGraphCanvas.prototype.deselectNode;
+LGraphCanvas.prototype.deselectNode = function (node) {
+    const res = orgDeselectNode.apply(this, arguments);
+    moveAOTNodesToFront();
+    return res;
+};
+
+// Also hook into background clicks that might change focus
+const orgProcessMouseDown = LGraphCanvas.prototype.processMouseDown;
+LGraphCanvas.prototype.processMouseDown = function (e) {
+    const res = orgProcessMouseDown.apply(this, arguments);
+    moveAOTNodesToFront();
+    return res;
+};

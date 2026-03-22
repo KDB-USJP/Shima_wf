@@ -68,6 +68,10 @@ app.registerExtension({
 
             function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
 
+            // Z-Order handled by global custodian
+
+            if (node.properties.always_on_top === undefined) node.properties.always_on_top = true;
+
             node.onDrawBackground = function (ctx) {
                 if (this.flags.collapsed) return;
 
@@ -396,6 +400,10 @@ app.registerExtension({
 
                         const iScale = mkInput("Scale", "scale", "number", "0.1");
 
+                        const iAOT = mkInput("Stay Always On Top", "always_on_top", "checkbox");
+                        if (node.properties.always_on_top === undefined) iAOT.checked = true;
+                        else iAOT.checked = node.properties.always_on_top;
+
                         const iL1C = mkInput("LED Stage 1 Color", "led_1_color", "text");
                         const iL1M = mkInput("LED Stage 1->2 Breakpoint (0-1)", "led_1_max", "number", "0.05");
                         const iL2C = mkInput("LED Stage 2 Color", "led_2_color", "text");
@@ -423,6 +431,9 @@ app.registerExtension({
                             setW("led_2_color", iL2C.value);
                             setW("led_2_max", iL2M.value, true);
                             setW("led_3_color", iL3C.value);
+
+                            node.properties.always_on_top = iAOT.checked;
+                            if (node.properties.always_on_top) window.Shima.moveAOTNodesToFront();
 
                             // Recalculate dimensions immediately
                             const sc = parseFloat(iScale.value) || 1.0;

@@ -136,7 +136,6 @@ app.registerExtension({
                     ctx.restore();
                 };
 
-                this.color = "#222";
                 this.bgcolor = "#111";
                 this.size = [500, 150];
 
