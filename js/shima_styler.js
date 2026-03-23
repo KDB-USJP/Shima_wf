@@ -82,7 +82,7 @@ const createStyleBrowser = (nodeType, nodeData) => {
             `;
             warningBar.innerHTML = "⚡ <b>Shima Assets Missing!</b> Click to open Setup Hub.";
             warningBar.onclick = () => {
-                const node = app.graph.addNode("Shima.Hub");
+                const node = this.graph.addNode("Shima.Hub");
                 if (node) {
                     node.pos = [this.pos[0] + 50, this.pos[1] + 50];
                     app.canvas.centerOnNode(node);

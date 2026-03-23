@@ -50,21 +50,26 @@ app.registerExtension({
             setTimeout(cleanupUI, 50);
 
             // Force to back on creation
-            if (app.graph && app.graph._nodes) {
-                const idx = app.graph._nodes.indexOf(node);
-                if (idx > 0) {
-                    app.graph._nodes.splice(idx, 1);
-                    app.graph._nodes.unshift(node);
+            const pushToBack = (node) => {
+                const graph = node.graph;
+                if (graph && graph._nodes) {
+                    const idx = graph._nodes.indexOf(node);
+                    if (idx > 0) {
+                        graph._nodes.splice(idx, 1);
+                        graph._nodes.unshift(node);
+                    }
                 }
-            }
+            };
+            pushToBack(node);
 
             // --- Z-Index Lock ---
             const moveToBack = () => {
-                if (!app.graph || !app.graph._nodes) return;
-                const idx = app.graph._nodes.indexOf(node);
+                const graph = node.graph;
+                if (!graph || !graph._nodes) return;
+                const idx = graph._nodes.indexOf(node);
                 if (idx > 0) {
-                    app.graph._nodes.splice(idx, 1);
-                    app.graph._nodes.unshift(node);
+                    graph._nodes.splice(idx, 1);
+                    graph._nodes.unshift(node);
                 }
             };
 

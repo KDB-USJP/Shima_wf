@@ -322,10 +322,11 @@ function getLinkColorForType(type) {
 
 // Updated getConnectedType function with recursion protection
 function getConnectedType(node, inputIndex, visited = new Set()) {
-    if (!node.inputs?.[inputIndex]?.link) return "*";
-    const link = app.graph.links[node.inputs[inputIndex].link];
+    const graph = node.graph;
+    if (!node.inputs?.[inputIndex]?.link || !graph) return "*";
+    const link = graph.links[node.inputs[inputIndex].link];
     if (!link) return "*";
-    const sourceNode = app.graph.getNodeById(link.origin_id);
+    const sourceNode = graph.getNodeById(link.origin_id);
     if (!sourceNode?.outputs?.[link.origin_slot]) return "*";
 
     // Check for circular reference using node ID
@@ -347,7 +348,8 @@ function getConnectedType(node, inputIndex, visited = new Set()) {
 
 
 function updateTypeColors(node) {
-    if (!node.inputs || !node.outputs) return;
+    const graph = node.graph;
+    if (!node.inputs || !node.outputs || !graph) return;
 
     const types = [];
 
@@ -365,13 +367,13 @@ function updateTypeColors(node) {
             node.outputs[idx].color_on = color;
 
             for (const linkId of (node.outputs[idx].links || [])) {
-                const link = app.graph.links[linkId];
+                const link = graph.links[linkId];
                 if (link) link.color = color;
             }
         }
 
         if (input.link) {
-            const link = app.graph.links[input.link];
+            const link = graph.links[input.link];
             if (link) link.color = color;
         }
     });

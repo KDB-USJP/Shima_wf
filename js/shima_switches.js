@@ -30,15 +30,18 @@ function getBreakerImage(state) {
 
 // --- Traversal Logic (shared with Bypass) ---
 const updateDownstreamBypass = (startNode, isPassing) => {
+    const graph = startNode.graph;
+    if (!graph) return;
+
     const visited = new Set();
     const queue = [];
     if (startNode.outputs && startNode.outputs[0]) {
         const output = startNode.outputs[0];
         if (output.links) {
             for (const linkId of output.links) {
-                const link = app.graph.links[linkId];
+                const link = graph.links[linkId];
                 if (link) {
-                    const targetNode = app.graph.getNodeById(link.target_id);
+                    const targetNode = graph.getNodeById(link.target_id);
                     if (targetNode) queue.push(targetNode);
                 }
             }
@@ -62,9 +65,9 @@ const updateDownstreamBypass = (startNode, isPassing) => {
             for (const output of node.outputs) {
                 if (output.type !== "INT" && output.links) {
                     for (const linkId of output.links) {
-                        const link = app.graph.links[linkId];
+                        const link = graph.links[linkId];
                         if (link) {
-                            const nextNode = app.graph.getNodeById(link.target_id);
+                            const nextNode = graph.getNodeById(link.target_id);
                             if (nextNode) queue.push(nextNode);
                         }
                     }
@@ -173,14 +176,15 @@ app.registerExtension({
 
             // --- Synchronization & State ---
             const syncSlaves = (state) => {
-                if (!isBreaker) return;
+                const graph = node.graph;
+                if (!isBreaker || !graph) return;
                 const output = node.outputs?.[0];
                 if (!output || !output.links) return;
                 const mode = node.properties.sync_mode;
                 output.links.forEach(linkId => {
-                    const link = app.graph.links[linkId];
+                    const link = graph.links[linkId];
                     if (!link) return;
-                    const targetNode = app.graph.getNodeById(link.target_id);
+                    const targetNode = graph.getNodeById(link.target_id);
                     if (targetNode && targetNode.comfyClass === "Shima.PanelSwitch") {
                         const targetW = targetNode.widgets?.find(w => w.name === "switch_state");
                         if (targetW) {

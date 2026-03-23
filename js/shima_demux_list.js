@@ -94,7 +94,8 @@ app.registerExtension({
             setTimeout(configurePorts, 50);
 
             node.refreshHarvestedOptions = function() {
-                if (!node.inputs || node.inputs.length === 0) return;
+                const graph = node.graph;
+                if (!graph || !node.inputs || node.inputs.length === 0) return;
                 
                 // Track if we found any valid options. If not, don't overwrite user's manual lists
                 let foundOptions = false;
@@ -102,9 +103,9 @@ app.registerExtension({
                 // Check all inputs that are connected
                 node.inputs.forEach(input => {
                     if (input.link) {
-                        const linkInfo = app.graph.links[input.link];
+                        const linkInfo = graph.links[input.link];
                         if (linkInfo) {
-                            const originNode = app.graph.getNodeById(linkInfo.origin_id);
+                            const originNode = graph.getNodeById(linkInfo.origin_id);
                             if (originNode && originNode.outputs) {
                                 // Sometimes the origin output is tied to a widget name
                                 const originOutput = originNode.outputs[linkInfo.origin_slot];
@@ -133,9 +134,9 @@ app.registerExtension({
                     node.outputs.forEach((out, slotIndex) => {
                        if (out.links) {
                            out.links.forEach(linkId => {
-                               const linkInfo = app.graph.links[linkId];
+                               const linkInfo = graph.links[linkId];
                                if (linkInfo) {
-                                    const targetNode = app.graph.getNodeById(linkInfo.target_id);
+                                    const targetNode = graph.getNodeById(linkInfo.target_id);
                                     if (targetNode && targetNode.inputs) {
                                         const targetInput = targetNode.inputs[linkInfo.target_slot];
                                         if (targetInput && targetInput.widget && targetNode.widgets) {
@@ -262,10 +263,11 @@ app.registerExtension({
 
                         // Trace upstream connection to populate dropdown
                         let originLabels = [];
-                        if (node.inputs && node.inputs.length > 0 && node.inputs[0].link) {
-                            const link = app.graph.links[node.inputs[0].link];
+                        const graph = node.graph;
+                        if (graph && node.inputs && node.inputs.length > 0 && node.inputs[0].link) {
+                            const link = graph.links[node.inputs[0].link];
                             if (link) {
-                                const originNode = app.graph.getNodeById(link.origin_id);
+                                const originNode = graph.getNodeById(link.origin_id);
                                 if (originNode && originNode.comfyClass === "Shima.Omnijog") {
                                     const rowsW = originNode.widgets?.find(w => w.name === "rows");
                                     const rowLimit = rowsW ? parseInt(rowsW.value) || 10 : 10;

@@ -88,28 +88,43 @@ function setupDependencyGeneratorWidgets(node) {
             const w = (node.widgets || []).find(w => w.name === "json_stub");
             if (w) w.value = text;
             
-            const syncId = placeholderUrl;
-            if (node.outputs?.[0]?.links && app.graph?.links) {
-                node.outputs[0].links.forEach(link_id => {
-                    const link = app.graph.links[link_id];
-                    if (link) {
-                        const targetNode = app.graph.getNodeById(link.target_id);
-                        if (targetNode && targetNode.comfyClass === "Shima.DependencyInstaller") {
-                            if (targetNode.shimaSyncData) targetNode.shimaSyncData(text);
+            const findTargetInstallerRecursive = (graph) => {
+                if (node.outputs?.[0]?.links) {
+                    for (const link_id of node.outputs[0].links) {
+                        const link = graph.links[link_id];
+                        if (link) {
+                            const targetNode = graph.getNodeById(link.target_id);
+                            if (targetNode && targetNode.comfyClass === "Shima.DependencyInstaller") {
+                                if (targetNode.shimaSyncData) targetNode.shimaSyncData(text);
+                            }
                         }
                     }
-                });
-            }
+                }
+            };
+            findTargetInstallerRecursive(node.graph || app.graph);
         }
 
         scanBtn.onclick = async () => {
-            if (!app.graph?._nodes) return;
+            const getAllNodesRecursive = (graph, results = []) => {
+                results.push(...graph._nodes);
+                graph._nodes.forEach(n => {
+                    if (n.getInnerGraph) {
+                        const inner = n.getInnerGraph();
+                        if (inner) getAllNodesRecursive(inner, results);
+                    }
+                });
+                return results;
+            };
+
+            const allNodes = getAllNodesRecursive(app.graph);
+            if (!allNodes.length) return;
+
             const deps = [];
             const extensions = [".safetensors", ".ckpt", ".pt", ".pth", ".bin", ".onnx", ".torchscript", ".yaml", ".json"];
             const rawIDs = new Set();
             
             // First pass: Collect all potential IDs
-            app.graph._nodes.forEach(n => {
+            allNodes.forEach(n => {
                 const nodeType = n.comfyClass || n.type || "UnknownNode";
                 if (!n.widgets || nodeType === "Shima.DemuxList") return;
                 n.widgets.forEach(w => {
@@ -188,7 +203,7 @@ function setupDependencyGeneratorWidgets(node) {
             };
 
             // Final pass: Build the manifest
-            app.graph._nodes.forEach(n => {
+            allNodes.forEach(n => {
                 const nodeType = n.comfyClass || n.type || "UnknownNode";
                 if (!n.widgets || nodeType === "Shima.DemuxList") return;
 

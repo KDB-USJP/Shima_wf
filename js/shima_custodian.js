@@ -189,8 +189,14 @@ app.registerExtension({
                     // Crucial: Use setTimeout and focus more aggressively to fix keyboard lock
                     setTimeout(() => {
                         window.focus();
-                        if (app.canvas && app.canvas.canvas) {
-                            app.canvas.canvas.focus();
+                        if (app.canvas) {
+                            app.canvas.editing_node = null;
+                            if (app.canvas.canvas) {
+                                app.canvas.canvas.blur();
+                                app.canvas.canvas.focus();
+                            }
+                            // Reset graph status if it was paused
+                            if (app.graph) app.graph.status = LGraph.STATUS_RUNNING;
                         }
                     }, 50);
                 };
@@ -279,8 +285,23 @@ app.registerExtension({
                     return true;
                 }
 
-                const toggleNodes = (targetClass, label) => {
-                    const nodes = app.graph._nodes.filter(n => n.comfyClass === targetClass);
+            const getAllNodesRecursive = (graph, results = [], depth = 0) => {
+                if (!graph || depth > 10) return results;
+                results.push(...graph._nodes);
+                graph._nodes.forEach(n => {
+                    if (n.getInnerGraph) {
+                        try {
+                            const inner = n.getInnerGraph();
+                            if (inner && inner !== graph) getAllNodesRecursive(inner, results, depth + 1);
+                        } catch (e) {}
+                    }
+                });
+                return results;
+            };
+
+            const toggleNodes = (targetClass, label) => {
+                const allNodes = getAllNodesRecursive(app.graph);
+                const nodes = allNodes.filter(n => n.comfyClass === targetClass);
                     if (nodes.length === 0) {
                         this._status_msg = `No ${label}s found.`;
                         this.setDirtyCanvas(true);
@@ -311,7 +332,8 @@ app.registerExtension({
                         message: "This will clear ALL Use Everywhere Group Restrictions from every node. This does NOT delete groups. Proceed?",
                         onConfirm: () => {
                             let count = 0;
-                            app.graph._nodes.forEach(n => {
+                            const allNodes = getAllNodesRecursive(app.graph);
+                            allNodes.forEach(n => {
                                 if (n.properties?.ue_properties?.group_regex) {
                                     n.properties.ue_properties.group_regex = "";
                                     count++;
@@ -333,7 +355,8 @@ app.registerExtension({
                             const groupCount = app.graph._groups ? app.graph._groups.length : 0;
                             app.graph._groups = [];
                             let nodeCount = 0;
-                            app.graph._nodes.forEach(n => {
+                            const allNodes = getAllNodesRecursive(app.graph);
+                            allNodes.forEach(n => {
                                 let cleared = false;
                                 if (n.properties?.ue_properties?.group_regex) {
                                     n.properties.ue_properties.group_regex = "";

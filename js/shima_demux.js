@@ -192,10 +192,11 @@ app.registerExtension({
 
                         // Trace upstream connection to populate dropdown
                         let originLabels = [];
-                        if (node.inputs && node.inputs.length > 0 && node.inputs[0].link) {
-                            const link = app.graph.links[node.inputs[0].link];
+                        const graph = node.graph;
+                        if (graph && node.inputs && node.inputs.length > 0 && node.inputs[0].link) {
+                            const link = graph.links[node.inputs[0].link];
                             if (link) {
-                                const originNode = app.graph.getNodeById(link.origin_id);
+                                const originNode = graph.getNodeById(link.origin_id);
                                 if (originNode && originNode.comfyClass === "Shima.Omnijog") {
                                     const rowsW = originNode.widgets?.find(w => w.name === "rows");
                                     const rowLimit = rowsW ? parseInt(rowsW.value) || 10 : 10;

@@ -252,14 +252,17 @@ app.registerExtension({
                     const activeRoute = (v === 0) ? 0 : 1;
 
                     // Search both outputs for connected Highway nodes
+                    const graph = node.graph;
+                    if (!graph) return;
+
                     [0, 1].forEach(slot => {
                         const links = node.outputs?.[slot]?.links;
                         if (!links) return;
 
                         links.forEach(linkId => {
-                            const link = app.graph.links[linkId];
+                            const link = graph.links[linkId];
                             if (!link) return;
-                            const targetNode = app.graph.getNodeById(link.target_id);
+                            const targetNode = graph.getNodeById(link.target_id);
                             if (!targetNode) return;
 
                             if (targetNode.comfyClass === "Shima.HighwayDetour") {

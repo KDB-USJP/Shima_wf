@@ -73,15 +73,18 @@ app.registerExtension({
 
             // --- Traversal & Sync Logic ---
             const updateDetourPaths = (detourNode, activeRoute) => {
+                const graph = detourNode.graph;
+                if (!graph) return;
+
                 const visited = new Set();
 
                 // 1. Find the Merge Node(s)
                 const findMergeNodes = (startNode) => {
                     const found = [];
                     const q = [...(startNode.outputs?.[0]?.links || []), ...(startNode.outputs?.[1]?.links || [])]
-                        .map(id => app.graph.links[id])
+                        .map(id => graph.links[id])
                         .filter(l => l)
-                        .map(l => app.graph.getNodeById(l.target_id));
+                        .map(l => graph.getNodeById(l.target_id));
 
                     const qVisited = new Set();
                     while (q.length > 0) {
@@ -95,7 +98,7 @@ app.registerExtension({
                         if (n.outputs) {
                             for (const out of n.outputs) {
                                 if (out.links) {
-                                    q.push(...out.links.map(id => app.graph.links[id]).filter(l => l).map(l => app.graph.getNodeById(l.target_id)));
+                                    q.push(...out.links.map(id => graph.links[id]).filter(l => l).map(l => graph.getNodeById(l.target_id)));
                                 }
                             }
                         }
@@ -108,9 +111,9 @@ app.registerExtension({
                 // 2. Trace and toggle branches
                 const toggleBranch = (outputIndex, enable) => {
                     const q = (detourNode.outputs?.[outputIndex]?.links || [])
-                        .map(id => app.graph.links[id])
+                        .map(id => graph.links[id])
                         .filter(l => l)
-                        .map(l => app.graph.getNodeById(l.target_id));
+                        .map(l => graph.getNodeById(l.target_id));
 
                     const branchVisited = new Set();
                     while (q.length > 0) {
@@ -125,7 +128,7 @@ app.registerExtension({
                         if (n.outputs) {
                             for (const out of n.outputs) {
                                 if (out.links) {
-                                    q.push(...out.links.map(id => app.graph.links[id]).filter(l => l).map(l => app.graph.getNodeById(l.target_id)));
+                                    q.push(...out.links.map(id => graph.links[id]).filter(l => l).map(l => graph.getNodeById(l.target_id)));
                                 }
                             }
                         }

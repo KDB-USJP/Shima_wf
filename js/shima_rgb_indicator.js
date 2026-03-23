@@ -127,10 +127,11 @@ app.registerExtension({
                     state = { r: false, g: false, b: false };
 
                     const checkLink = (inputIdx) => {
-                        if (this.inputs?.[inputIdx]?.link) {
-                            const link = app.graph.links[this.inputs[inputIdx].link];
+                        const graph = this.graph;
+                        if (graph && this.inputs?.[inputIdx]?.link) {
+                            const link = graph.links[this.inputs[inputIdx].link];
                             if (link) {
-                                const sourceNode = app.graph.getNodeById(link.origin_id);
+                                const sourceNode = graph.getNodeById(link.origin_id);
                                 if (sourceNode) {
                                     const sw = sourceNode.widgets?.find(w => w.name === "switch_state" || w.name === "breaker_state");
                                     if (sw !== undefined) return (sw.value === 0);

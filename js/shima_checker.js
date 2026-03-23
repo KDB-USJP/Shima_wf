@@ -184,8 +184,13 @@ app.registerExtension({
 
                     // Run scan after brief delay to allow UI to render "SCANNING" frame
                     setTimeout(async () => {
-                        await this.scanGraph();
-                        this.setDirtyCanvas(true); // Double redraw after update
+                        try {
+                            await this.scanGraph();
+                        } catch (err) {
+                            console.error("[Shima] Checker failed:", err);
+                            this._report_data = "FAIL\nERROR DURING SCAN\nCheck console for details.";
+                        }
+                        this.setDirtyCanvas(true);
                     }, 50);
 
                     return true;
@@ -250,18 +255,48 @@ LGraphNode.prototype.onDrawForeground = function (ctx, canvas) {
 LGraphNode.prototype.scanGraph = async function () {
     console.group("[Shima] Diagnostic Scan Started");
 
+    const getAllNodesRecursive = (graph, results = [], depth = 0) => {
+        if (!graph || depth > 10) return results; // Safety depth limit
+        results.push(...graph._nodes);
+        graph._nodes.forEach(n => {
+            if (n.getInnerGraph) {
+                try {
+                    const inner = n.getInnerGraph();
+                    // Ensure we don't recurse into the SAME graph
+                    if (inner && inner !== graph) getAllNodesRecursive(inner, results, depth + 1);
+                } catch (e) {
+                    console.warn("[Shima] Error accessing inner graph:", e);
+                }
+            }
+        });
+        return results;
+    };
+
     // 0. Force Heavy Sync (God Mode v2)
     console.log("[Shima] Triggering heavy sync (Seeding + Cache-Busting)...");
     try {
+        const fetchWithTimeout = async (url, options, timeout = 5000) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await api.fetchApi(url, { ...options, signal: controller.signal });
+                clearTimeout(id);
+                return response;
+            } catch (e) {
+                clearTimeout(id);
+                throw e;
+            }
+        };
+
         // Stage 1: Server-side re-scan (Models & Input)
-        await api.fetchApi("/assets/seed", {
+        await fetchWithTimeout("/assets/seed", {
             method: "POST",
             body: JSON.stringify({ roots: ["models", "input"] })
         }).catch(err => console.warn("[Shima] Seed endpoint not found or failed, skipping to Stage 2.", err));
 
         // Stage 2: Cache-busted definition reload
         const timestamp = Date.now();
-        const response = await api.fetchApi(`/object_info?t=${timestamp}`, {
+        const response = await fetchWithTimeout(`/object_info?t=${timestamp}`, {
             cache: "no-store",
             headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
         });
@@ -274,7 +309,7 @@ LGraphNode.prototype.scanGraph = async function () {
 
             // Nuclear Widget Refresh (Existing Nodes)
             console.log("[Shima] Propagating new definitions to existing nodes...");
-            const allNodes = app.graph.nodes || app.graph._nodes || [];
+            const allNodes = getAllNodesRecursive(app.graph);
             for (const node of allNodes) {
                 const nodeDef = app.nodeDefs[node.comfyClass || node.type];
                 if (!nodeDef || !node.widgets) continue;
@@ -304,7 +339,7 @@ LGraphNode.prototype.scanGraph = async function () {
     const missing = [];
 
     // 1. Reset Global State (Clean ephemeral flags)
-    const allNodes = app.graph.nodes || app.graph._nodes || [];
+    const allNodes = getAllNodesRecursive(app.graph);
     for (const n of allNodes) {
         n._shima_scan_error = false;
         if (n.bgcolor === "#850000") n.bgcolor = null;

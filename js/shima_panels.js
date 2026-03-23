@@ -341,7 +341,7 @@ app.registerExtension({
                         const payloadWidget = this.widgets.find(w => w.name === "payload");
                         if (payloadWidget) {
                             payloadWidget.value = JSON.stringify(newConfig);
-                            app.graph.setDirtyCanvas(true, true);
+                            this.setDirtyCanvas(true, true);
                         }
                     });
                     return true;

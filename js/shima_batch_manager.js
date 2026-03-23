@@ -16,7 +16,22 @@ app.registerExtension({
         api.addEventListener("shima-batch-update-index", (event) => {
             const { node_id, new_index } = event.detail;
 
-            const node = app.graph.getNodeById(node_id);
+            const findNodeRecursive = (graph, id) => {
+                let n = graph.getNodeById(id);
+                if (n) return n;
+                for (const node of graph._nodes) {
+                    if (node.getInnerGraph) {
+                        const inner = node.getInnerGraph();
+                        if (inner) {
+                            n = findNodeRecursive(inner, id);
+                            if (n) return n;
+                        }
+                    }
+                }
+                return null;
+            };
+
+            const node = findNodeRecursive(app.graph, node_id);
             if (!node) return;
 
             // Find 'index' widget

@@ -261,7 +261,19 @@ LGraphCanvas.prototype.getNodeMenuOptions = function (node) {
                             label: `${node.title || node.comfyClass || node.type} | ${w.name}`
                         });
 
-                        const panels = app.graph._nodes.filter(n => n.comfyClass === "Shima.ControlPanel");
+                        const findAllPanelsRecursive = (graph, results = [], depth = 0) => {
+                            if (!graph || !graph._nodes || depth > 10) return results;
+                            results.push(...graph._nodes.filter(n => n.comfyClass === "Shima.ControlPanel"));
+                            graph._nodes.forEach(n => {
+                                if (n.getInnerGraph) {
+                                    const inner = n.getInnerGraph();
+                                    if (inner && inner !== graph) findAllPanelsRecursive(inner, results, depth + 1);
+                                }
+                            });
+                            return results;
+                        };
+
+                        const panels = findAllPanelsRecursive(app.graph);
                         panels.forEach(p => {
                             p.size[1] += 34 * (p.properties?.scale || 1.0);
                             if (p.onResize) p.onResize(p.size);
@@ -323,8 +335,24 @@ app.registerExtension({
                 }
 
                 const data = {};
+                const findNodeRecursive = (graph, id, depth = 0) => {
+                    if (!graph || !graph._nodes || depth > 10) return null;
+                    let n = graph.getNodeById(id);
+                    if (n) return n;
+                    for (const node of graph._nodes) {
+                        if (node.getInnerGraph) {
+                            const inner = node.getInnerGraph();
+                            if (inner && inner !== graph) {
+                                n = findNodeRecursive(inner, id, depth + 1);
+                                if (n) return n;
+                            }
+                        }
+                    }
+                    return null;
+                };
+
                 window.ShimaPinnedWidgets.forEach(p => {
-                    const tn = app.graph.getNodeById(p.nodeId);
+                    const tn = findNodeRecursive(app.graph, p.nodeId);
                     if (tn) {
                         const tw = tn.widgets?.find(w => w.name === p.widgetName);
                         if (tw) data[p.label] = tw.value;
@@ -501,8 +529,24 @@ app.registerExtension({
                     ctx.font = `italic ${12 * sc}px sans-serif`;
                     ctx.fillText("Right-click a node to pin widgets here...", W / 2, currentY + 30 * sc);
                 } else {
+                    const findNodeRecursive = (graph, id, depth = 0) => {
+                        if (!graph || !graph._nodes || depth > 10) return null;
+                        let n = graph.getNodeById(id);
+                        if (n) return n;
+                        for (const node of graph._nodes) {
+                            if (node.getInnerGraph) {
+                                const inner = node.getInnerGraph();
+                                if (inner && inner !== graph) {
+                                    n = findNodeRecursive(inner, id, depth + 1);
+                                    if (n) return n;
+                                }
+                            }
+                        }
+                        return null;
+                    };
+
                     window.ShimaPinnedWidgets.forEach((pinned, idx) => {
-                        const targetNode = app.graph.getNodeById(pinned.nodeId);
+                        const targetNode = findNodeRecursive(app.graph, pinned.nodeId);
 
                         // Node Title (Left aligned)
                         ctx.fillStyle = "#ccc";
@@ -737,7 +781,22 @@ app.registerExtension({
                     const rowBottom = currentY + ROW_H;
 
                     if (y >= rowTop && y <= rowBottom) {
-                        const targetNode = app.graph.getNodeById(pinned.nodeId);
+                        const findNodeRecursive = (graph, id) => {
+                            let n = graph.getNodeById(id);
+                            if (n) return n;
+                            for (const node of graph._nodes) {
+                                if (node.getInnerGraph) {
+                                    const inner = node.getInnerGraph();
+                                    if (inner) {
+                                        n = findNodeRecursive(inner, id);
+                                        if (n) return n;
+                                    }
+                                }
+                            }
+                            return null;
+                        };
+
+                        const targetNode = findNodeRecursive(app.graph, pinned.nodeId);
 
                         // We pushed the X button hit start over to match the new width spacing
                         const controlX = SCR_X + SCR_W - 55 * sc;
@@ -746,7 +805,19 @@ app.registerExtension({
                         // Unpin X Button
                         if (x >= xHitStart && x <= xHitStart + 20 * sc && y >= rowTop && y <= rowBottom) {
                             window.ShimaPinnedWidgets.splice(i, 1);
-                            const panels = app.graph._nodes.filter(n => n.comfyClass === "Shima.ControlPanel");
+                            
+                            const findAllPanelsRecursive = (graph, results = []) => {
+                                results.push(...graph._nodes.filter(n => n.comfyClass === "Shima.ControlPanel"));
+                                graph._nodes.forEach(n => {
+                                    if (n.getInnerGraph) {
+                                        const inner = n.getInnerGraph();
+                                        if (inner) findAllPanelsRecursive(inner, results);
+                                    }
+                                });
+                                return results;
+                            };
+
+                            const panels = findAllPanelsRecursive(app.graph);
                             panels.forEach(p => {
                                 p.size[1] = Math.max(200, p.size[1] - ROW_H * sc);
                                 if (p.onResize) p.onResize(p.size);

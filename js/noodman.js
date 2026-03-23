@@ -137,19 +137,30 @@ app.registerExtension({
             const detail = e?.detail;
             if (detail && detail.exec_info && detail.exec_info.queue_remaining === 0) {
                 // Execution finished — stop Noodman animations with stop_after_run
-                if (app.graph) {
-                    for (const node of app.graph._nodes) {
-                        if (node.comfyClass === "Shima.NoodmanSticker" && !node._noodmanStopped) {
-                            // Skip nodes that have a watch_node_id set (they stop via executed event)
-                            const watchW = node.widgets?.find(w => w.name === "watch_node_id");
-                            const hasWatch = (watchW?.value || "").trim().length > 0;
-                            if (hasWatch) continue;
+                const getAllNodesRecursive = (graph, results = [], depth = 0) => {
+                    if (!graph || !graph._nodes || depth > 10) return results;
+                    results.push(...graph._nodes);
+                    graph._nodes.forEach(n => {
+                        if (n.getInnerGraph) {
+                            const inner = n.getInnerGraph();
+                            if (inner && inner !== graph) getAllNodesRecursive(inner, results, depth + 1);
+                        }
+                    });
+                    return results;
+                };
 
-                            const stopW = node.widgets?.find(w => w.name === "stop_after_run");
-                            if (stopW?.value !== false) {
-                                node._noodmanStopped = true;
-                                node.setDirtyCanvas(true);
-                            }
+                const allNodes = getAllNodesRecursive(app.graph);
+                for (const node of allNodes) {
+                    if (node.comfyClass === "Shima.NoodmanSticker" && !node._noodmanStopped) {
+                        // Skip nodes that have a watch_node_id set (they stop via executed event)
+                        const watchW = node.widgets?.find(w => w.name === "watch_node_id");
+                        const hasWatch = (watchW?.value || "").trim().length > 0;
+                        if (hasWatch) continue;
+
+                        const stopW = node.widgets?.find(w => w.name === "stop_after_run");
+                        if (stopW?.value !== false) {
+                            node._noodmanStopped = true;
+                            node.setDirtyCanvas(true);
                         }
                     }
                 }
@@ -160,7 +171,20 @@ app.registerExtension({
         const onExecuted = (e) => {
             const executedNodeId = e?.detail?.node;
             if (!executedNodeId || !app.graph) return;
-            for (const node of app.graph._nodes) {
+            const getAllNodesRecursive = (graph, results = [], depth = 0) => {
+                if (!graph || !graph._nodes || depth > 10) return results;
+                results.push(...graph._nodes);
+                graph._nodes.forEach(n => {
+                    if (n.getInnerGraph) {
+                        const inner = n.getInnerGraph();
+                        if (inner && inner !== graph) getAllNodesRecursive(inner, results, depth + 1);
+                    }
+                });
+                return results;
+            };
+
+            const allNodes = getAllNodesRecursive(app.graph);
+            for (const node of allNodes) {
                 if (node.comfyClass === "Shima.NoodmanSticker" && !node._noodmanStopped) {
                     const watchW = node.widgets?.find(w => w.name === "watch_node_id");
                     const watchId = (watchW?.value || "").trim();

@@ -275,11 +275,12 @@ app.registerExtension({
                 // --- NEW: Forward String Trace for DemuxList ---
                 const activeLabel = node.widgets?.find(w => w.name === "label_" + activeChannel)?.value || ("CH" + (parseInt(activeChannel) + 1));
                 let isStringMode = false;
-                if (node.outputs && node.outputs[0] && node.outputs[0].links) {
+                const graph = node.graph;
+                if (graph && node.outputs && node.outputs[0] && node.outputs[0].links) {
                     for (let l_id of node.outputs[0].links) {
-                        const link = app.graph.links[l_id];
+                        const link = graph.links[l_id];
                         if (!link) continue;
-                        const targetNode = app.graph.getNodeById(link.target_id);
+                        const targetNode = graph.getNodeById(link.target_id);
                         if (targetNode && targetNode.comfyClass === "Shima.DemuxList") {
                             const tChanW = targetNode.widgets?.find(w => w.name === "target_channel");
                             if (tChanW && tChanW.value === activeLabel) {
@@ -431,7 +432,7 @@ app.registerExtension({
                                     // Normally we would queue an execution here for real-time upstream 
                                     // if the user has Auto Queue enabled, but we avoid forcing app.graph.runStep() 
                                     // to prevent server flooding.
-                                    app.graph.setDirtyCanvas(true, true);
+                                    node.setDirtyCanvas(true, true);
                                 }
                             }
                         }
@@ -500,13 +501,14 @@ app.registerExtension({
                             
                             // Trigger downstream DemuxList refreshes
                             setTimeout(() => {
-                                if (this.outputs) {
+                                const graph = this.graph;
+                                if (graph && this.outputs) {
                                     this.outputs.forEach(out => {
                                         if (out.links) {
                                             out.links.forEach(linkId => {
-                                                const link = app.graph.links[linkId];
+                                                const link = graph.links[linkId];
                                                 if (link) {
-                                                    const targetNode = app.graph.getNodeById(link.target_id);
+                                                    const targetNode = graph.getNodeById(link.target_id);
                                                     if (targetNode && typeof targetNode.refreshHarvestedOptions === "function") {
                                                         targetNode.refreshHarvestedOptions();
                                                         targetNode.onConnectionsChange(); // Force port redraws

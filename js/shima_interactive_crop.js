@@ -129,13 +129,15 @@ app.registerExtension({
             // Read CommonParams Input Node & Pull Math Ratio
             nodeType.prototype.syncFromCommonParams = function () {
                 let sourceNode = null;
+                const graph = this.graph;
+                if (!graph) return;
                 const linkId = this.inputs.find(i => i.name === "shima.commonparams")?.link;
                 if (linkId) {
-                    const link = app.graph.links[linkId];
-                    if (link) sourceNode = app.graph.getNodeById(link.origin_id);
+                    const link = graph.links[linkId];
+                    if (link) sourceNode = graph.getNodeById(link.origin_id);
                 } else {
                     // Fallback to find active Shima.Commons via "Use Everywhere" implicit virtual links
-                    sourceNode = app.graph._nodes.find(n => n.comfyClass === "Shima.Commons");
+                    sourceNode = graph._nodes.find(n => n.comfyClass === "Shima.Commons");
                 }
 
                 if (!sourceNode) {

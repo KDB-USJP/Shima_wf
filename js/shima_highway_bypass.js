@@ -42,6 +42,9 @@ app.registerExtension({
 
             // --- Traversal Logic ---
             const updateDownstreamBypass = (startNode, isPassing) => {
+                const graph = startNode.graph;
+                if (!graph) return;
+
                 const visited = new Set();
                 const queue = [];
 
@@ -50,9 +53,9 @@ app.registerExtension({
                     const output = startNode.outputs[0];
                     if (output.links) {
                         for (const linkId of output.links) {
-                            const link = app.graph.links[linkId];
+                            const link = graph.links[linkId];
                             if (link) {
-                                const targetNode = app.graph.getNodeById(link.target_id);
+                                const targetNode = graph.getNodeById(link.target_id);
                                 if (targetNode) queue.push(targetNode);
                             }
                         }
@@ -82,9 +85,9 @@ app.registerExtension({
                             // Actually, in Comfy logic, any data flow counts, but we'll stick to primary
                             if (output.type !== "INT" && output.links) {
                                 for (const linkId of output.links) {
-                                    const link = app.graph.links[linkId];
+                                    const link = graph.links[linkId];
                                     if (link) {
-                                        const nextNode = app.graph.getNodeById(link.target_id);
+                                        const nextNode = graph.getNodeById(link.target_id);
                                         if (nextNode) queue.push(nextNode);
                                     }
                                 }
@@ -96,15 +99,18 @@ app.registerExtension({
 
             // --- Sync Propagation ---
             const propagateHighwaySync = (controllerNode, newState) => {
+                const graph = controllerNode.graph;
+                if (!graph) return;
+
                 // bypass_state output is index 1
                 const syncOutput = controllerNode.outputs?.[1];
                 if (!syncOutput || !syncOutput.links) return;
 
                 for (const linkId of syncOutput.links) {
-                    const link = app.graph.links[linkId];
+                    const link = graph.links[linkId];
                     if (!link) continue;
 
-                    const followerNode = app.graph.getNodeById(link.target_id);
+                    const followerNode = graph.getNodeById(link.target_id);
                     if (followerNode && followerNode.comfyClass === "Shima.HighwayBypass") {
                         const followerW = followerNode.widgets?.find(w => w.name === "bypass_state");
                         if (followerW) {

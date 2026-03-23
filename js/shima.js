@@ -4617,16 +4617,24 @@ function setupStickerWidgets(node) {
 // array (rendered on top) whenever selection state changes.
 
 window.Shima.moveAOTNodesToFront = () => {
-    if (!app.graph || !app.graph._nodes) return;
-    const nodes = app.graph._nodes;
-    // Iterate backwards to maintain relative order of AOT nodes while moving them to the end
-    for (let i = nodes.length - 1; i >= 0; i--) {
-        const n = nodes[i];
-        if (n && n.properties && n.properties.always_on_top === true) {
-            nodes.splice(i, 1);
-            nodes.push(n);
+    const processGraph = (graph) => {
+        if (!graph || !graph._nodes) return;
+        const nodes = graph._nodes;
+        // Iterate backwards to maintain relative order of AOT nodes while moving them to the end
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const n = nodes[i];
+            if (n && n.properties && n.properties.always_on_top === true) {
+                nodes.splice(i, 1);
+                nodes.push(n);
+            }
+            // Recurse into subgraphs
+            if (n && n.getInnerGraph) {
+                const inner = n.getInnerGraph();
+                if (inner) processGraph(inner);
+            }
         }
-    }
+    };
+    processGraph(app.graph);
 };
 
 const moveAOTNodesToFront = window.Shima.moveAOTNodesToFront;
