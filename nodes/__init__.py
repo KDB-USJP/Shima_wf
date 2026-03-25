@@ -37,6 +37,8 @@ from .transformer import NODE_CLASS_MAPPINGS as TRANSFORMER_NODES
 from .transformer import NODE_DISPLAY_NAME_MAPPINGS as TRANSFORMER_DISPLAY_NAMES
 from .transform_one import NODE_CLASS_MAPPINGS as TRANSFORM_ONE_NODES
 from .transform_one import NODE_DISPLAY_NAME_MAPPINGS as TRANSFORM_ONE_DISPLAY_NAMES
+from .dymo import NODE_CLASS_MAPPINGS as DYMO_NODES
+from .dymo import NODE_DISPLAY_NAME_MAPPINGS as DYMO_DISPLAY_NAMES
 
 from .sticker import NODE_CLASS_MAPPINGS as STICKER_NODES
 from .sticker import NODE_DISPLAY_NAME_MAPPINGS as STICKER_DISPLAY_NAMES
@@ -110,6 +112,7 @@ NODE_CLASS_MAPPINGS = {
     **TRANSFORMER_NODES,
     **TRANSFORM_ONE_NODES,
     **DATAPREVIEW_TEST_NODES,
+    **DYMO_NODES,
     "Shima.SeedLogger": ShimaSeedLogger,
     "Shima.Inspector": ShimaInspector,
     "Shima.BatchImageProcessor": ShimaBatchImageProcessor,
@@ -157,6 +160,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **TRANSFORMER_DISPLAY_NAMES,
     **TRANSFORM_ONE_DISPLAY_NAMES,
     **DATAPREVIEW_TEST_DISPLAY_NAMES,
+    **DYMO_DISPLAY_NAMES,
     "Shima.SeedLogger": "Shima Seed Logger",
     "Shima.Inspector": "Shima Inspector",
     "Shima.BatchImageProcessor": "Shima Batch Image Processor",

@@ -506,26 +506,7 @@ class ShimaPilotLight:
 
         return {"ui": {"state": [state]}, "result": ()}
 
-class ShimaDymoLabel:
-    """
-    Embossed plastic label node.
-    """
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "text": ("STRING", {"default": "LABEL", "multiline": True}),
-                "base_color": ("STRING", {"default": "#000000"}),
-                "font_size": ("INT", {"default": 18, "min": 10, "max": 40}),
-                "jitter": ("BOOLEAN", {"default": True}),
-            },
-        }
-    RETURN_TYPES = ()
-    FUNCTION = "execute"
-    CATEGORY = "Shima/System"
-
-    def execute(self, **kwargs):
-        return ()
+# ShimaDymoLabel moved to .dymo for modularity
 
 class ShimaMultiStateIndicator:
     """
@@ -1344,6 +1325,8 @@ class ShimaReBNDL_ShimaSampler:
 
     def execute(self, allow_external_linking=False, image=None, latent=None, s33d_used=None):
         return {"ui": {"used_values": ["Type: Shima Sampler"]}, "result": ({"bndl_type": "shimasampler", "image": image, "latent": latent, "s33d_used": s33d_used},)}
+
+from .dymo import ShimaDymoLabel
 
 NODE_CLASS_MAPPINGS = {
     "Shima.StringConcat": ShimaStringConcat,
