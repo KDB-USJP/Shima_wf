@@ -52,6 +52,12 @@ const BUTTON_TYPES = {
         icon: (value) => value ? "🟩" : "🟥",
         tooltip: (value) => `Sampler Commons: ${value ? "ON" : "OFF"}`
     },
+    show_preview: {
+        type: "toggle",
+        widget: "show_preview",
+        icon: (value) => value ? "👁️" : "🚫",
+        tooltip: (value) => `Show Preview: ${value ? "ON" : "OFF"}`
+    },
 
     // Separator
     "|": {

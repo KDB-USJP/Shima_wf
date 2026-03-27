@@ -423,6 +423,18 @@ async def get_switch_image(request):
         return web.Response(status=404, text="Switch image not found")
     return web.FileResponse(file_path)
 
+@PromptServer.instance.routes.get("/shima/assets/{filename}")
+async def get_generic_asset(request):
+    """Serve files from the root assets directory."""
+    filename = request.match_info["filename"]
+    # Security: no path traversal
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return web.Response(status=403, text="Invalid filename")
+    file_path = SHIMA_DIR / "assets" / filename
+    if not file_path.exists():
+        return web.Response(status=404, text=f"Asset {filename} not found")
+    return web.FileResponse(file_path)
+
 @PromptServer.instance.routes.get("/shima/sprite/{filename}")
 async def get_sprite_image(request):
     """Serve sprite sheet image from assets/sprites/."""

@@ -12,9 +12,13 @@ An "Efficiency Sampler" style node that:
 
 import torch
 import random
+import time
 import comfy.sample
 import comfy.samplers
 import comfy.utils
+import latent_preview
+from io import BytesIO
+from server import PromptServer
 from .system_utils import ShimaSecurity, BUFFER_STABLE, EXECUTE_PLANK, INDEX_SHIFT
 
 class ShimaSampler:
@@ -98,10 +102,15 @@ class ShimaSampler:
                     "tooltip": "Bundle containing Positive and Negative conditioning (overrides individual inputs)"
                 }),
                 "panelinputs.bndl": ("BNDL", {"forceInput": True, "tooltip": "Overrides panel settings using an external PanelBNDLer node"}),
+                "show_preview": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Show/hide the built-in preview image display on this node"
+                }),
             },
             "hidden": {
                 "prompt": "PROMPT",
                 "extra_pnginfo": "EXTRA_PNGINFO",
+                "unique_id": "UNIQUE_ID",
             }
         }
     
@@ -145,6 +154,7 @@ class ShimaSampler:
         upscale_cfg: float = 8.0,
         prompt=None,
         extra_pnginfo=None,
+        unique_id=None,
         **kwargs,
     ):
         # Safely parse boolean arguments in case UI sends them as strings from legacy saved workflows
@@ -255,7 +265,14 @@ class ShimaSampler:
         
         # [Camouflage] Noise injection removed in Silent Sentinel V2
 
-        # Common Sampling Function
+        # Preview Preparation
+        previewer = None
+        if preview_method != "none":
+            try:
+                previewer = latent_preview.get_previewer(model.load_device, model.model.latent_format)
+            except Exception as e:
+                print(f"[Shima Sampler] Warning: Could not initialize previewer: {e}")
+
         def run_sampler(latent_input, seed, steps, denoise, add_noise, pass_cfg):
             if add_noise:
                 noise = comfy.sample.prepare_noise(latent_input, seed)
@@ -270,7 +287,31 @@ class ShimaSampler:
                 scheduler=scheduler,
                 denoise=denoise,
             )
-            
+
+            # --- PREVIEW CALLBACK ---
+            preview_callback = None
+            if previewer:
+                # Use unique_id for the progress bar to ensure proper targeting
+                pbar = comfy.utils.ProgressBar(steps, node_id=unique_id)
+                
+                # Standard preview callback - matches latent_preview.prepare_callback pattern
+                last_preview_time = [0.0]
+
+                def callback(step, x0, x, total_steps):
+                    preview_bytes = None
+                    is_final = step + 1 >= total_steps
+                    now = time.time()
+                    
+                    # Thin throttle: only generate previews every 500ms (or on final step)
+                    if is_final or (now - last_preview_time[0] >= 0.5):
+                        last_preview_time[0] = now
+                        if previewer:
+                            # Use the standard API that returns ("JPEG", PIL_Image, max_size)
+                            preview_bytes = previewer.decode_latent_to_preview_image("JPEG", x0)
+                    
+                    pbar.update_absolute(step + 1, total_steps, preview_bytes)
+                preview_callback = callback
+
             return sampler.sample(
                 noise,
                 positive,
@@ -281,6 +322,7 @@ class ShimaSampler:
                 last_step=end_at_step,
                 force_full_denoise=not return_with_leftover_noise,
                 seed=seed,
+                callback=preview_callback
             )
 
         # PASS 1: Base Generation

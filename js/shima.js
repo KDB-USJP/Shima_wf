@@ -100,20 +100,17 @@ function randomString(length = 4) {
  * Must set hidden=true and disabled=true for proper hiding
  */
 function hideToolbarWidgets(node) {
-    const widgetsToHide = ["use_commonparams", "allow_external_linking", "show_used_values"];
-    setTimeout(() => {
-        widgetsToHide.forEach(widgetName => {
-            const widget = node.widgets?.find(w => w.name === widgetName);
-            if (widget && widget.type !== "hidden") {
-                widget.origType = widget.type;
-                widget.origComputeSize = widget.computeSize;
-                widget.type = "hidden";
-                widget.computeSize = () => [0, -4];
-                widget.hidden = true;
-                // Note: NOT setting disabled=true as it may break serialization
-            }
-        });
-    }, 50);
+    const widgetsToHide = ["use_commonparams", "use_samplercommons", "allow_external_linking", "show_used_values", "show_preview"];
+    if (!node.widgets) return;
+
+    widgetsToHide.forEach(widgetName => {
+        const widget = node.widgets.find(w => w.name === widgetName);
+        if (widget && widget.type !== "hidden") {
+            widget.type = "hidden";
+            widget.computeSize = () => [0, -4];
+            widget.hidden = true;
+        }
+    });
 }
 
 /**
@@ -1091,7 +1088,7 @@ function setupControlAgentWidgets(node) {
  * @param {LGraphNode} node - The Sampler node
  */
 function setupSamplerWidgets(node) {
-    // Add toolbar (both toggles + show_values)
+    // Add toolbar (both toggles + show_values, intentionally removed show_preview to prevent zoom bug)
     addShimaToolbar(node, ["commonparams", "samplercommons", "external_linking", "show_values"]);
     hideToolbarWidgets(node);
 
@@ -1099,9 +1096,31 @@ function setupSamplerWidgets(node) {
     setupUsedValuesDisplay(node, "Shima.Sampler");
 
     // Preserve critical widget values during serialization
-    preserveWidgetValues(node, ["use_commonparams", "use_samplercommons", "allow_external_linking", "show_used_values", "vae_decode"]);
+    preserveWidgetValues(node, ["use_commonparams", "use_samplercommons", "allow_external_linking", "show_used_values", "show_preview", "vae_decode"]);
 
-    // Removed port visual overrides
+    // === Preview Suppression (Permanent) ===
+    // To solve the catastrophic LiteGraph CSS detaching bug on the Master Prompt,
+    // we NEVER allow the Sampler to natively render images on its canvas.
+    // However, the data is still captured by `b_preview` event listeners
+    // and `onExecuted` to feed the Shima.CrystalBall node!
+    
+    const origOnDrawBackground = node.onDrawBackground;
+    node.onDrawBackground = function (ctx) {
+        if (this.imgs) {
+            this._hiddenImgs = this.imgs;
+            this.imgs = null;
+        }
+        if (origOnDrawBackground) origOnDrawBackground.call(this, ctx);
+    };
+
+    const origOnExecuted = node.onExecuted;
+    node.onExecuted = function (message) {
+        if (origOnExecuted) origOnExecuted.call(this, message);
+        if (this.imgs) {
+            this._hiddenImgs = this.imgs;
+            this.imgs = null;
+        }
+    };
 }
 
 /**

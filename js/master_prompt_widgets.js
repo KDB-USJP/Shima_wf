@@ -75,6 +75,10 @@ app.registerExtension({
                         widget.computeSize = () => [0, -4];
                         widget.hidden = true;
                         widget.disabled = true;
+                        if (widget.input_element) {
+                            widget.input_element.style.display = "none";
+                            widget.input_element.hidden = true;
+                        }
                     }
                 };
                 setTimeout(() => {
@@ -108,6 +112,10 @@ app.registerExtension({
                                     widget.computeSize = widget.origComputeSize;
                                     widget.hidden = false;
                                     widget.disabled = false;
+                                    if (widget.input_element) {
+                                        widget.input_element.style.display = "block";
+                                        widget.input_element.hidden = false;
+                                    }
                                     delete widget.origType;
                                     delete widget.origComputeSize;
                                 }
@@ -116,6 +124,10 @@ app.registerExtension({
                                 widget.computeSize = () => [0, -4];
                                 widget.hidden = true;
                                 widget.disabled = true;
+                                if (widget.input_element) {
+                                    widget.input_element.style.display = "none";
+                                    widget.input_element.hidden = true;
+                                }
                             }
                         });
 
