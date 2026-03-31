@@ -51,11 +51,12 @@ app.registerExtension({
             const btn4 = [bX, 155, 200, 26]; // Clear Restrictions
             const btn5 = [bX, 190, 200, 26]; // Extras menu
             const btn6 = [bX, 225, 200, 26]; // Nuke All
+            const btn7 = [bX, 260, 200, 26]; // Reload Themes
 
-            node.size = [240, 275];
+            node.size = [240, 310];
 
             node.computeSize = function () {
-                return [240, 275];
+                return [240, 310];
             };
 
             const drawBtn = (ctx, rect, label, color, isHovered) => {
@@ -111,6 +112,7 @@ app.registerExtension({
                 drawBtn(ctx, btn4, "🏝️ CLEAR GROUP-REGS", "#00df81", this._hover_btn === 4);
                 drawBtn(ctx, btn5, "📂 OPEN EXTRAS", "#ffffff", this._hover_btn === 5);
                 drawBtn(ctx, btn6, "🌋 NUKE GROUPS & REGS", "#ff8800", this._hover_btn === 6);
+                drawBtn(ctx, btn7, "📚 RELOAD THEMES (XLSX)", "#bb66ff", this._hover_btn === 7);
 
                 // Status
                 ctx.fillStyle = "#666";
@@ -134,6 +136,7 @@ app.registerExtension({
                 else if (testHit(x, y, btn4)) h = 4;
                 else if (testHit(x, y, btn5)) h = 5;
                 else if (testHit(x, y, btn6)) h = 6;
+                else if (testHit(x, y, btn7)) h = 7;
 
                 if (this._hover_btn !== h) {
                     this._hover_btn = h;
@@ -390,6 +393,34 @@ app.registerExtension({
                     showExtrasModal();
                     this._status_msg = "Extras Menu Opened";
                     this.setDirtyCanvas(true);
+                    return true;
+                }
+
+                if (testHit(x, y, btn7)) { // Reload Themes
+                    this._status_msg = "Reloading themes...";
+                    this.setDirtyCanvas(true);
+                    fetch("/shima/settings/reload_themes", { method: "POST" })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.status === "ok") {
+                                this._status_msg = "Themes Reloaded!";
+                                // Force frontend palette re-fetch
+                                if (window.fetchPalette) {
+                                    window.fetchPalette();
+                                }
+                                showShimaDialog({
+                                    title: "📚 Success",
+                                    message: "Excel Themes reloaded from disk.\nNewly placed nodes will use updated palettes after a JS reload or page refresh.",
+                                    isAlert: true
+                                });
+                            } else {
+                                this._status_msg = "Error reloading themes.";
+                            }
+                            this.setDirtyCanvas(true);
+                        }).catch(err => {
+                            this._status_msg = "Network Error.";
+                            this.setDirtyCanvas(true);
+                        });
                     return true;
                 }
             };

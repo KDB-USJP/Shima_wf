@@ -8,15 +8,49 @@ import { disableUEForInputs } from "./ue_helper.js";
 
 // --- Shima Theme Defaults (Fallback) ---
 const SHIMA_PALETTE = {
-    loaders: "#3a5a7c",
-    samplers: "#4a9eff",
-    latents: "#ff7e5f",
-    notes: "#ffcc00",
-    prompts_pos: "#1a571a",
-    prompts_neg: "#571a1a",
-    switches: "#14da35ff",
-    utility: "#eab114",
-    islands: "#61be64ff"
+    "loaders": "#9ba59b",
+    "models": "#191919",
+    "vae": "#191919",
+    "samplers": "#9ba59b",
+    "latents": "#eecdec",
+    "conditioning": "#191919",
+    "clip": "#191919",
+    "controlnet": "#191919",
+    "images": "#191919",
+    "masks": "#191919",
+    "upscale": "#191919",
+    "prompts_pos": "#1a571a",
+    "prompts_neg": "#571a1a",
+    "primitives": "#191919",
+    "switches": "#14ff3c",
+    "reroutes": "#191919",
+    "utility": "#eab114",
+    "notes": "#1474af",
+    "notes_warning": "#d13438",
+    "notes_attention": "#ffcc00",
+    "notes_info": "#1474af",
+    "transparent": "transparent",
+    "neutral_light": "#191919",
+    "neutral_dark": "#191919",
+    "pipes": "#191919",
+    "fx": "#191919",
+    "passers": "#191919",
+    "commons": "#191919",
+    "output": "#191919",
+    "3d": "#191919",
+    "video": "#191919",
+    "utilities": "#191919",
+    "stylers": "#191919",
+    "loras": "#191919",
+    "controlnets": "#191919",
+    "automation": "#191919",
+    "flowcontrol": "#191919",
+    "math": "#191919",
+    "sigmas": "#191919",
+    "segments": "#191919",
+    "audio": "#191919",
+    "api": "#191919",
+    "debug": "#191919"
 };
 
 // --- Shima Theme & Coloring ---
@@ -36,13 +70,13 @@ if (!window.SHIMA_THEME) {
 const NODE_CATEGORY_MAP = {
     // Models & Lora
     "Shima.ModelCitizen": "models",
-    "Shima.LoraStack": "models",
-    "Shima.LoraLoader": "models",
+    "Shima.LoraStack": "loras",
+    "Shima.LoraLoader": "loras",
 
     // Samplers
     "Shima.Sampler": "samplers",
     "Shima.SamplerCommons": "samplers",
-    "Shima.SamplerCommonsPasser": "samplers",
+    "Shima.SamplerCommonsPasser": "passers",
     "Shima.PhotoRemix": "samplers",
 
     // Latents
@@ -51,41 +85,44 @@ const NODE_CATEGORY_MAP = {
     // Loaders & Savers
     "Shima.FileNamer": "loaders",
     "Shima.FileSaver": "loaders",
-    "Shima.MultiSaver": "loaders",
+    "Shima.MultiSaver": "output",
     "Shima.Loader": "loaders",
 
     // Conditionings & Prompts
     "Shima.MasterPrompt": "conditioning",
-    "Shima.CLIPTextEncode": "conditioning",
+    "Shima.CLIPTextEncode": "clip",
     "Shima.PromptPositive": "prompts_pos",
     "Shima.PromptNegative": "prompts_neg",
 
     // Notes & Content
     "Shima.RichText": "notes",
     "Shima.Markdown": "notes",
-    "Shima.Inspector": "notes",
+    "Shima.Inspector": "debug",
     "Shima.Note": "notes",
+    "Note": "notes",
 
-    // ControlNets
-    "Shima.ControlAgent": "utility",
-    "Shima.PanelControlAgent": "utility",
+    // ControlNets & Automation
+    "Shima.ControlAgent": "controlnets",
+    "Shima.PanelControlAgent": "controlnets",
 
     // Utility & logic
-    "Shima.SmartReroute": "utility",
-    "Shima.Preview": "utility",
-    "Shima.PreviewCompare": "utility",
-    "Shima.CarouselPreview": "utility",
-    "Shima.SeedLogger": "utility",
-    "Shima.SeedController": "utility",
-    "Shima.BatchImageProcessor": "utility",
-    "Shima.WorkflowImage": "utility",
-    "Shima.Sticker": "utility",
-    "Shima.Headline": "utility",
-    "Shima.ChoiceSwitch": "utility",
-    "Shima.StyleSelector": "utility",
-    "Shima.StyleIterator": "utility",
-    "Shima.StyleGallery": "utility",
-    "Shima.StyleFavorites": "utility"
+    "Shima.SmartReroute": "reroutes",
+    "Shima.Preview": "utilities",
+    "Shima.PreviewCompare": "utilities",
+    "Shima.CarouselPreview": "utilities",
+    "Shima.SeedLogger": "automation",
+    "Shima.SeedController": "automation",
+    "Shima.BatchImageProcessor": "images",
+    "Shima.WorkflowImage": "images",
+    "Shima.ChoiceSwitch": "switches",
+    "Shima.StyleSelector": "stylers",
+    "Shima.StyleIterator": "stylers",
+    "Shima.StyleGallery": "stylers",
+    "Shima.StyleFavorites": "stylers",
+
+    // Pure nodes (Should be bypassed naturally, but mapped for edge cases)
+    "Shima.Sticker": "transparent",
+    "Shima.Headline": "transparent"
 };
 
 /**
@@ -171,26 +208,71 @@ function recolorNode(node, force = false) {
     if (!colorKey) {
         if (type.includes("Loader")) colorKey = "loaders";
         else if (type.includes("Model") || type.includes("Checkpoint")) colorKey = "models";
+        else if (type.includes("Lora")) colorKey = "loras";
         else if (type.includes("VAE")) colorKey = "vae";
-        else if (type.includes("Sampler")) colorKey = "samplers";
+        else if (type.includes("Sampler") || type.includes("KSampler")) colorKey = "samplers";
         else if (type.includes("Latent")) colorKey = "latents";
         else if (type.includes("Conditioning")) colorKey = "conditioning";
         else if (type.includes("CLIP")) colorKey = "clip";
         else if (type.includes("Positive")) colorKey = "prompts_pos";
         else if (type.includes("Negative")) colorKey = "prompts_neg";
         else if (type.includes("Face") || type.includes("Segment") || type.includes("Mask")) colorKey = "masks";
-        else if (type.includes("Switch") || type.includes("Concat") || type.includes("Split")) colorKey = "utility";
+        else if (type.includes("Switch") || type.includes("Router")) colorKey = "switches";
+        else if (type.includes("Concat") || type.includes("Split")) colorKey = "utilities";
+        else if (type.includes("Image")) colorKey = "images";
+        else if (type.includes("Video")) colorKey = "video";
+        else if (type.includes("Audio")) colorKey = "audio";
+        else if (type.includes("Pipe")) colorKey = "pipes";
+        else if (type.includes("Math") || type.includes("Number")) colorKey = "math";
+        else if (type.includes("ControlNet")) colorKey = "controlnets";
         else if (type.includes("Content") || type.includes("Display")) colorKey = "notes";
     }
 
     if (!colorKey) return;
 
-    const funcColor = palette[colorKey];
-    if (funcColor) {
-        // SAFETY: Only apply if it's NOT a gradient string
-        if (typeof funcColor === "string" && !funcColor.startsWith("(")) {
+    const funcColor = node.shima_custom_color || palette[colorKey];
+    if (funcColor && typeof funcColor === "string" && !funcColor.startsWith("(")) {
+        
+        // PURE UI EXCLUSION BLOCK - Never color these nodes
+        const PURE_NODES = ["Shima.Sticker", "Shima.NoodmanSticker", "Shima.CrystalBall", "Shima.Headline", "Shima.Omnijog", "Shima.Fader", "Shima.Knob", "Shima.Demux", "Shima.DemuxList", "Shima.PilotLight", "Shima.RGBIndicator", "Shima.Backdrop", "Shima.RichDisplay", "Shima.Breaker"];
+        if (PURE_NODES.includes(type) || colorKey === "transparent") return;
+
+        // Fetch user setting
+        const colorMode = app.ui.settings.getSettingValue("Shima.Colors_NodeColorMode") || "Full Color";
+        const neutralDark = palette["neutral_dark"] || "#222222";
+
+        // ALWAYS RESET to ensure cleanly switching modes
+        node.color = LiteGraph.NODE_DEFAULT_COLOR || "#333";
+        node.bgcolor = LiteGraph.NODE_DEFAULT_BGCOLOR || "#222";
+        node.title_color = LiteGraph.NODE_TEXT_COLOR || "#fff";
+
+        // Core Full-Color or Stealth Assignments
+        if (colorMode === "Full Color") {
             node.color = funcColor;
             node.bgcolor = funcColor;
+            
+            // Ensure stale explicit tier overrides from previous runs are cleaned up
+            delete node.shima_text_tier_color;
+            node.title_mode = LiteGraph.NORMAL_TITLE;
+        } else if (colorMode === "Stealth (Dark Mode)") {
+            node.color = neutralDark;
+            node.bgcolor = neutralDark;
+            node.properties = node.properties || {};
+            node.properties.shima_stealth_text = funcColor;
+            node.shima_text_tier_color = funcColor;
+            node.title_mode = LiteGraph.NORMAL_TITLE;
+        } else if (colorMode === "Stealth (Light Mode)") {
+            const neutralLight = palette["neutral_light"] || "#dddddd";
+            node.color = neutralLight;
+            node.bgcolor = neutralLight;
+            node.properties = node.properties || {};
+            node.properties.shima_stealth_text = funcColor;
+            node.shima_text_tier_color = funcColor;
+            node.title_mode = LiteGraph.NORMAL_TITLE;
+        } else {
+            if (node.properties) delete node.properties.shima_stealth_text;
+            delete node.shima_text_tier_color;
+            node.title_mode = LiteGraph.NORMAL_TITLE;
         }
     }
 }
@@ -232,7 +314,7 @@ function getContrastColor(color) {
 /**
  * Fetch palettes from backend
  */
-async function fetchPalette() {
+window.fetchPalette = async function fetchPalette() {
     try {
         const cacheBuster = Date.now();
         console.log(`[Shima] Fetching palettes (cb=${cacheBuster})...`);
@@ -243,7 +325,8 @@ async function fetchPalette() {
                 window.SHIMA_THEME.palettes = settings.themes.palettes;
 
                 // Sync with current user setting (Palette dropdown in shima.js reads from SHIMA_THEME.palettes)
-                const savedValue = app.ui.settings.getSettingValue("Shima.ActivePalette");
+                let savedValue = app.ui.settings.getSettingValue("Shima.Colors_ActivePalette");
+                if (savedValue === undefined || savedValue === null) savedValue = "Standard";
                 applyPalette(savedValue);
             }
         }
@@ -254,37 +337,53 @@ async function fetchPalette() {
 
 // 1. Draw Node Override (Force Contrast for Readability)
 const originalDrawNode = ensureOriginal(LGraphCanvas.prototype, "drawNode");
-LGraphCanvas.prototype.drawNode = function (node, canvas) {
-    // Determine base color (fallback to LiteGraph defaults if missing)
-    let color = node.color || LGraphCanvas.node_colors.default?.color || "#222";
-
-    // PURE CONTRAST: Calculate black/white flip (Solid color logic only)
-    const contrast = getContrastColor(color);
+LGraphCanvas.prototype.drawNode = function (node, ctx) {
+    // Determine base colors for contrast calculations
+    const titleBaseColor = node.color || LGraphCanvas.node_colors.default?.color || "#222";
+    const bodyBaseColor = node.bgcolor || LGraphCanvas.node_colors.default?.bgcolor || "#222";
 
     // Store original per-node colors to restore later
     const oldTitleColor = node.title_color;
+    const oldTitleTextColor = node.title_text_color;
     const oldTextColor = LiteGraph.NODE_TEXT_COLOR;
     const oldSelectedTitleColor = LiteGraph.NODE_SELECTED_TITLE_COLOR;
-
-    // Force contrast colors for duration of draw
-    node.title_color = contrast;
-    LiteGraph.NODE_TEXT_COLOR = contrast;
-    LiteGraph.NODE_SELECTED_TITLE_COLOR = contrast;
-
-    // This affects the internal canvas instance for this specific pass
     const oldCanvasTitleColor = this.node_title_color;
-    this.node_title_color = contrast;
+
+    const titleContrast = getContrastColor(titleBaseColor);
+    const bodyContrast = getContrastColor(bodyBaseColor);
+
+    // Fallback to natively saved properties dict if the memory cache is stale (e.g. F5 reloads)
+    const stealthText = node.shima_text_tier_color || node.properties?.shima_stealth_text;
+
+    // If stealth mode is active, FORCE all text (title + inputs) to perfectly match the semantic color natively.
+    if (stealthText) {
+        LiteGraph.NODE_TEXT_COLOR = stealthText;
+        
+        node.title_text_color = stealthText;
+        node.title_color = stealthText;
+        LiteGraph.NODE_SELECTED_TITLE_COLOR = stealthText;
+        this.node_title_color = stealthText;
+    } else {
+        // Apply strict Global Contrast (Inputs & Options text readability depends purely on body background)
+        LiteGraph.NODE_TEXT_COLOR = bodyContrast;
+
+        // Apply strict Native Title Contrast (Title String overrides depend purely on header background)
+        node.title_text_color = titleContrast;
+        node.title_color = titleContrast;
+        LiteGraph.NODE_SELECTED_TITLE_COLOR = titleContrast;
+        this.node_title_color = titleContrast;
+    }
 
     let result;
     try {
         result = originalDrawNode.apply(this, arguments);
     } catch (e) {
-        // Robustness: fall back to native if anything fails
         console.error("[Shima] drawNode safety pass:", e);
     }
 
-    // Restore original colors/strings immediately after draw
+    // Restore original colors/strings immediately after render pass
     node.title_color = oldTitleColor;
+    node.title_text_color = oldTitleTextColor;
     LiteGraph.NODE_TEXT_COLOR = oldTextColor;
     LiteGraph.NODE_SELECTED_TITLE_COLOR = oldSelectedTitleColor;
     this.node_title_color = oldCanvasTitleColor;
@@ -322,9 +421,10 @@ LGraphCanvas.prototype.getNodeMenuOptions = function (node) {
                     return {
                         content: `<span style="display:inline-block; width:12px; height:12px; background-color:${value}; margin-right:8px; border:1px solid #555; vertical-align:middle;"></span>${key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ')}`,
                         callback: () => {
-                            node.color = value;
-                            node.bgcolor = value;
-                            node.setDirtyCanvas(true, true);
+                            // Tag the node with a manual explicit custom color override and re-trigger recolor
+                            node.shima_custom_color = value;
+                            recolorNode(node, true);
+                            app.canvas.draw(true, true);
                         }
                     };
                 })
@@ -350,6 +450,20 @@ app.registerExtension({
     name: "Shima.Utilities",
     async setup() {
         console.log("[Shima] Utilities extension setup...");
+
+        app.ui.settings.addSetting({
+            id: "Shima.Colors_NodeColorMode",
+            name: "Shima: Node Color Engine Mode",
+            tooltip: "Choose between Full Color, or Stealth modes running purely semantic text on neutral backgrounds.",
+            type: "combo",
+            options: ["Full Color", "Stealth (Dark Mode)", "Stealth (Light Mode)"],
+            defaultValue: "Full Color",
+            onChange: (value) => {
+                // We no longer forcefully recolor the graph here.
+                // It cleanly respects already-placed nodes, applying only to newly hatched instances.
+            }
+        });
+
         await fetchPalette();
     },
     async nodeCreated(node, app) {

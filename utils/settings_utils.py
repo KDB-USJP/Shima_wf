@@ -49,8 +49,14 @@ class ShimaSettings:
     }
 
     @classmethod
+    def reload_excel_palettes(cls):
+        """Force a hot-reload of the Excel theme sheet."""
+        cls._excel_palettes = None
+        return cls.get_excel_palettes()
+
+    @classmethod
     def get_excel_palettes(cls):
-        """Parse E:\ComfyDev\Shima\assets\data\shima_sheets.xlsx (tab: node-color-themes) once."""
+        """Parse E:\\ComfyDev\\Shima\\assets\\data\\shima_sheets.xlsx (tab: node-color-themes) once."""
         if cls._excel_palettes is not None:
             return cls._excel_palettes
             

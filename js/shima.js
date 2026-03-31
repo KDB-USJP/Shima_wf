@@ -2304,7 +2304,7 @@ async function shimaPreviewOpen(filenames, useEditor = false) {
 
     try {
         const filename = filenames[0];
-        const editorPath = useEditor ? getShimaSetting("editorPath") : "";
+        const editorPath = useEditor ? getShimaSetting("Paths_editorPath") : "";
 
         const response = await api.fetchApi("/shima/preview/open_editor", {
             method: "POST",
@@ -2353,7 +2353,7 @@ async function shimaPreviewSave(focusedIndex = -1) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 focused_index: focusedIndex,
-                default_folder: getShimaSetting("defaultOutputFolder")
+                default_folder: getShimaSetting("Paths_defaultOutputFolder")
             }),
         });
 
@@ -2808,7 +2808,7 @@ function registerShimaSettings() {
     if (!app.ui.settings) return;
 
     app.ui.settings.addSetting({
-        id: "Shima.xlsxStatus",
+        id: "Shima.System_xlsxStatus",
         name: "Shima: XLSX Data Status",
         type: "text",
         defaultValue: "Checking...",
@@ -2822,14 +2822,14 @@ function registerShimaSettings() {
             const res = await api.fetchApi("/shima/assets/check");
             const data = await res.json();
             const status = data.data_exists ? "✅ FOUND" : "❌ MISSING";
-            app.ui.settings.setSettingValue("Shima.xlsxStatus", status);
+            app.ui.settings.setSettingValue("Shima.System_xlsxStatus", status);
         } catch (e) {
-            app.ui.settings.setSettingValue("Shima.xlsxStatus", "⚠️ ERROR");
+            app.ui.settings.setSettingValue("Shima.System_xlsxStatus", "⚠️ ERROR");
         }
     }, 1000);
 
     app.ui.settings.addSetting({
-        id: "Shima.editorPath",
+        id: "Shima.Paths_editorPath",
         name: "Shima: External Editor Path",
         type: "text",
         defaultValue: "",
@@ -2837,7 +2837,7 @@ function registerShimaSettings() {
     });
 
     app.ui.settings.addSetting({
-        id: "Shima.defaultOutputFolder",
+        id: "Shima.Paths_defaultOutputFolder",
         name: "Shima: Default Output Folder",
         type: "text",
         defaultValue: "ComfyUI/output/Shima",
@@ -2845,7 +2845,7 @@ function registerShimaSettings() {
     });
 
     app.ui.settings.addSetting({
-        id: "Shima.apiBase",
+        id: "Shima.Tokens_apiBase",
         name: "Shima: API Base URL",
         type: "text",
         defaultValue: "https://shima.wf",
@@ -2859,7 +2859,7 @@ function registerShimaSettings() {
     });
 
     app.ui.settings.addSetting({
-        id: "Shima.assetDirectory",
+        id: "Shima.Paths_assetDirectory",
         name: "Shima: Asset Directory",
         type: "text",
         defaultValue: "",
@@ -2873,7 +2873,7 @@ function registerShimaSettings() {
     });
 
     app.ui.settings.addSetting({
-        id: "Shima.civitaiKey",
+        id: "Shima.Tokens_civitaiKey",
         name: "Shima: CivitAI API Key",
         type: "text",
         defaultValue: "",
@@ -2887,7 +2887,7 @@ function registerShimaSettings() {
     });
 
     app.ui.settings.addSetting({
-        id: "Shima.hfToken",
+        id: "Shima.Tokens_hfToken",
         name: "Shima: HuggingFace Token",
         type: "text",
         defaultValue: "",
@@ -2901,8 +2901,9 @@ function registerShimaSettings() {
     });
 
     app.ui.settings.addSetting({
-        id: "Shima.ActiveThumbnailPack",
+        id: "Shima.Colors_ThumbnailPack",
         name: "Shima: Active Style Thumbnail Pack",
+        tooltip: "Select the active thumbnail expansion pack for the Style Selector.",
         type: "combo",
         defaultValue: "walking_woman",
         options: async () => {
@@ -2924,8 +2925,9 @@ function registerShimaSettings() {
 
     // --- Dynamic Palette Picker setting (Moved from utilities) ---
     app.ui.settings.addSetting({
-        id: "Shima.ActivePalette",
-        name: "🏝️ Shima Active Node Palette",
+        id: "Shima.Colors_ActivePalette",
+        name: "Shima: Active Node Palette",
+        tooltip: "Choose a global theme mapped from shima_sheets.xlsx.",
         type: "combo",
         defaultValue: "Standard",
         options: (value) => {
@@ -2973,7 +2975,7 @@ let userPrefs = { isOver18: false };
  * Helper to build proxy URLs for remote Shima API calls
  */
 function getProxyUrl(endpoint) {
-    const base = getShimaSetting("apiBase") || "https://shima.wf";
+    const base = getShimaSetting("Tokens_apiBase") || "https://shima.wf";
     const target = `${base}${endpoint}`;
     return `/shima/proxy?target=${encodeURIComponent(target)}`;
 }

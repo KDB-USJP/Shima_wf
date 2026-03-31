@@ -778,6 +778,16 @@ async def get_settings(request):
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
+@PromptServer.instance.routes.post("/shima/settings/reload_themes")
+async def reload_themes(request):
+    """Hot-reload the Excel theme sheet cache."""
+    try:
+        from .utils.settings_utils import ShimaSettings
+        ShimaSettings.reload_excel_palettes()
+        return web.json_response({"status": "ok", "message": "Themes reloaded successfully."})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
 @PromptServer.instance.routes.post("/shima/settings/save")
 async def save_settings(request):
     """Update shima_settings.json from frontend."""
